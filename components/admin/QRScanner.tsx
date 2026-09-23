@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ScanLine, Camera, CheckCircle2, XCircle, Ban, SearchX } from "lucide-react";
+import { ScanLine, Camera, CameraOff, CheckCircle2, XCircle, Ban, SearchX } from "lucide-react";
+import { Html5Qrcode } from "html5-qrcode";
 import { Badge } from "@/components/ui/Badge";
 
 interface ScannedMember {
@@ -18,11 +19,29 @@ type Outcome =
   | { kind: "not_found" }
   | { kind: "error"; message: string };
 
+type CameraState =
+  | { kind: "idle" }
+  | { kind: "starting" }
+  | { kind: "active" }
+  | { kind: "denied"; message: string };
+
 export function QRScanner() {
   const [input, setInput] = useState("");
   const [scanning, setScanning] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [camera, setCamera] = useState<CameraState>({ kind: "idle" });
+  const scannerRef = useRef<Html5Qrcode | null>(null);
+
+  useEffect(() => {
+    return () => {
+      const s = scannerRef.current;
+      if (s) {
+        s.stop().catch(() => {});
+        s.clear();
+      }
+    };
+  }, []);
 
   function parseNumber(value: string): number | null {
     const match = value.match(/uv-(\d+)/i) || value.match(/(\d)/);
@@ -32,12 +51,7 @@ export function QRScanner() {
     return n;
   }
 
-  async function doScan() {
-    const membershipNumber = parseNumber(input);
-    if (!membershipNumber) {
-      setOutcome({ kind: "error", message: "Enter a member number or a pass QR value like UV-3." });
-      return;
-    }
+  async function lookup(membershipNumber: number) {
     setScanning(true);
     setOutcome(null);
     try {
@@ -64,6 +78,78 @@ export function QRScanner() {
     } finally {
       setScanning(false);
     }
+  }
+
+  async function handleScan(value: string) {
+    const membershipNumber = parseNumber(value);
+    if (!membershipNumber) {
+      setOutcome({
+        kind: "error",
+        message: "This QR is not an Urban Vogue member pass. Scan the pass shown on the membership page.",
+      });
+      return;
+    }
+    await lookup(membershipNumber);
+  }
+
+  async function startCamera() {
+    setCamera({ kind: "starting" });
+    let scanner: Html5Qrcode;
+    try {
+      scanner = new Html5Qrcode("qr-reader", false);
+    } catch {
+      setCamera({
+        kind: "denied",
+        message: "Could not initialise the QR reader. Use manual entry below.",
+      });
+      return;
+    }
+    scannerRef.current = scanner;
+    try {
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 220, height: 220 } },
+        async (decodedText) => {
+          const s = scannerRef.current;
+          scannerRef.current = null;
+          if (s) {
+            await s.stop().catch(() => {});
+          }
+          setCamera({ kind: "idle" });
+          await handleScan(decodedText);
+        },
+        () => {}
+      );
+      setCamera({ kind: "active" });
+    } catch (err) {
+      try {
+        await scanner.clear();
+      } catch {}
+      scannerRef.current = null;
+      const name = err instanceof Error ? err.name : "";
+      let message = "Could not access the camera. Allow camera access and try again.";
+      if (name === "NotAllowedError") {
+        message = "Camera permission was denied. Enable camera access in your browser settings, then try again.";
+      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+        message = "No camera was found on this device.";
+      } else if (name === "NotReadableError") {
+        message = "The camera is busy or in use by another app.";
+      } else if (name === "NotSupportedError" || name === "TypeError") {
+        message = "QR scanning is not supported on this browser or device. Use manual entry below.";
+      } else if (name === "SecurityError") {
+        message = "Camera access requires a secure (HTTPS) connection. You may be on http:// — use the deployed HTTPS link or localhost.";
+      }
+      setCamera({ kind: "denied", message });
+    }
+  }
+
+  async function stopCamera() {
+    const s = scannerRef.current;
+    scannerRef.current = null;
+    if (s) {
+      await s.stop().catch(() => {});
+    }
+    setCamera({ kind: "idle" });
   }
 
   async function doRedeem(member: ScannedMember) {
@@ -103,6 +189,8 @@ export function QRScanner() {
   const invalidKind =
     outcome?.kind === "revoked" || outcome?.kind === "not_found";
   const member = outcome && "member" in outcome ? outcome.member : null;
+  const cameraActive = camera.kind === "active";
+  const cameraBusy = camera.kind === "starting";
 
   return (
     <div className="grid lg:grid-cols-2 gap-8">
@@ -115,52 +203,94 @@ export function QRScanner() {
           </h2>
         </div>
         <p className="font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground mb-6">
-          Point the camera at the Urban Vogue QR code — or paste the pass value below.
+          Allow camera access, then point it at the member QR code.
         </p>
 
         <div className="relative aspect-[4/3] overflow-hidden bg-background border border-border">
-          <div className="absolute inset-0 grid-pattern opacity-40" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="relative h-40 w-40">
-              <span className="absolute top-0 left-0 h-8 w-8 border-t-2 border-l-2 border-primary" />
-              <span className="absolute top-0 right-0 h-8 w-8 border-t-2 border-r-2 border-primary" />
-              <span className="absolute bottom-0 left-0 h-8 w-8 border-b-2 border-l-2 border-primary" />
-              <span className="absolute bottom-0 right-0 h-8 w-8 border-b-2 border-r-2 border-primary" />
-              <motion.span
-                animate={{ y: [-64, 64, -64] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute left-0 right-0 h-px bg-primary"
-              />
+          <div id="qr-reader" className="absolute inset-0" />
+          {camera.kind === "denied" && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-background">
+              <CameraOff className="h-8 w-8 text-red-400" strokeWidth={1.5} />
+              <p className="mt-3 font-mono text-[9px] leading-relaxed tracking-[0.18em] uppercase text-red-400">
+                Camera unavailable
+              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{camera.message}</p>
             </div>
-          </div>
-          <div className="absolute bottom-4 left-0 right-0 text-center">
+          )}
+          {!cameraActive && camera.kind !== "denied" && (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="absolute inset-0 grid-pattern opacity-40" />
+              <div className="relative h-40 w-40">
+                <span className="absolute top-0 left-0 h-8 w-8 border-t-2 border-l-2 border-primary" />
+                <span className="absolute top-0 right-0 h-8 w-8 border-t-2 border-r-2 border-primary" />
+                <span className="absolute bottom-0 left-0 h-8 w-8 border-b-2 border-l-2 border-primary" />
+                <span className="absolute bottom-0 right-0 h-8 w-8 border-b-2 border-r-2 border-primary" />
+                {cameraBusy && (
+                  <motion.span
+                    animate={{ y: [-64, 64, -64] }}
+                    transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                    className="absolute left-0 right-0 h-px bg-primary"
+                  />
+                )}
+              </div>
+            </div>
+          )}
+          <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
             <p className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
-              {scanning ? "Scanning…" : "Camera preview"}
+              {cameraBusy
+                ? "Starting camera…"
+                : cameraActive
+                ? "Align the QR code inside the frame"
+                : camera.kind === "denied"
+                ? "Use manual entry below"
+                : "Press Start Camera"}
             </p>
           </div>
         </div>
 
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") doScan();
-          }}
-          placeholder="UV-3 or verify link…"
-          className="mt-6 w-full border border-border bg-background px-4 py-3 font-mono text-sm text-bone placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
-        />
+        {camera.kind !== "active" && camera.kind !== "starting" && (
+          <button
+            onClick={startCamera}
+            disabled={cameraBusy}
+            className="clip-notch mt-6 flex w-full items-center justify-center gap-2 bg-bone px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-background hover:bg-[#c9a86a] transition-colors disabled:opacity-60 cursor-pointer"
+          >
+            <Camera className="h-4 w-4" />
+            Start Camera
+          </button>
+        )}
+        {camera.kind === "active" && (
+          <button
+            onClick={stopCamera}
+            className="clip-notch mt-6 flex w-full items-center justify-center gap-2 border border-border px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-silver transition-all cursor-pointer"
+          >
+            <CameraOff className="h-4 w-4" />
+            Stop Camera
+          </button>
+        )}
 
-        <button
-          onClick={doScan}
-          disabled={scanning}
-          className="clip-notch mt-3 flex w-full items-center justify-center gap-2 bg-bone px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-background hover:bg-[#c9a86a] transition-colors disabled:opacity-60 cursor-pointer"
-        >
-          <Camera className="h-4 w-4" />
-          {scanning ? "Scanning…" : "Scan Pass"}
-        </button>
-        <p className="mt-3 text-center font-mono text-[7px] tracking-[0.24em] uppercase text-muted-foreground">
-          Verifies against the live registry · revoked passes show as invalid
-        </p>
+        <div className="mt-6 border-t border-border pt-5">
+          <p className="mb-3 font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground">
+            Or enter the pass value manually
+          </p>
+          <div className="flex gap-2">
+            <input
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleScan(input);
+              }}
+              placeholder="UV-3 or verify link…"
+              className="flex-1 min-w-0 border border-border bg-background px-4 py-3 font-mono text-sm text-bone placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+            />
+            <button
+              onClick={() => handleScan(input)}
+              disabled={scanning}
+              className="border border-border px-4 text-[10px] font-bold tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-primary transition-all disabled:opacity-60 cursor-pointer"
+            >
+              {scanning ? "…" : "Scan"}
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Result */}
@@ -175,6 +305,13 @@ export function QRScanner() {
             <p className="mt-4 font-mono text-[9px] tracking-[0.3em] uppercase text-muted-foreground">
               Awaiting a scan
             </p>
+            {scanning && (
+              <motion.span
+                animate={{ rotate: 360 }}
+                transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                className="mt-3 h-5 w-5 border border-primary border-t-transparent rounded-full"
+              />
+            )}
           </div>
         )}
 

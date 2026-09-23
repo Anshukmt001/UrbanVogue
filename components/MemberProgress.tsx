@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
 interface MemberProgressProps {
@@ -8,9 +9,37 @@ interface MemberProgressProps {
 }
 
 export function MemberProgress({
-  claimed = 0,
-  total = 100,
+  claimed: initialClaimed = 0,
+  total: initialTotal = 100,
 }: MemberProgressProps) {
+  const [claimed, setClaimed] = useState(initialClaimed);
+  const [total, setTotal] = useState(initialTotal);
+  const [live, setLive] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function refresh() {
+      try {
+        const res = await fetch("/api/members/stats");
+        const json = await res.json();
+        if (!active || !json?.success || !json.data) return;
+        const c = Number(json.data.totalMembers);
+        if (!isNaN(c)) setClaimed(c);
+        const t = Number(json.data.earlyAccessLimit);
+        if (!isNaN(t) && t > 0) setTotal(t);
+        setLive(true);
+      } catch {
+        // keep last known values when the API is unreachable
+      }
+    }
+    refresh();
+    const id = setInterval(refresh, 8000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
+
   const pct = Math.min(100, Math.round((claimed / total) * 100));
   const remaining = Math.max(0, total - claimed);
 
@@ -21,6 +50,16 @@ export function MemberProgress({
           <div>
             <p className="font-mono text-[10px] tracking-[0.32em] uppercase text-muted-foreground mb-3">
               Live Availability
+              {live && (
+                <motion.span
+                  animate={{ opacity: [1, 0.25, 1] }}
+                  transition={{ duration: 1.6, repeat: Infinity }}
+                  className="ml-3 inline-flex items-center gap-1.5 text-primary"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
+                  Live
+                </motion.span>
+              )}
             </p>
             <h2 className="font-headline text-4xl sm:text-6xl uppercase leading-[0.9] tracking-tight">
               Early Access
@@ -65,9 +104,8 @@ export function MemberProgress({
           <div className="h-[26px] sm:h-[34px] w-full border border-border bg-card overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
-              whileInView={{ width: `${pct}%` }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 1.4, ease: [0.16, 1, 0.3, 1] }}
+              animate={{ width: `${pct}%` }}
+              transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
               className="h-full bg-primary relative"
             >
               <div className="absolute inset-0 diagonal-stripes opacity-40" />

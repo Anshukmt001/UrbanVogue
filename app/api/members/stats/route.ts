@@ -5,8 +5,8 @@ import { Member, Settings } from "@/models";
 export const dynamic = "force-dynamic";
 
 const DEFAULT_LIMITS = {
-  earlyAccessLimit: 150,
-  tenPercentLimit: 100,
+  earlyAccessLimit: 100,
+  tenPercentLimit: 50,
   fivePercentLimit: 50,
 };
 

@@ -58,7 +58,7 @@ export function Navbar() {
               Early Access
             </Link>
             <a
-              href="https://instagram.com/urban_vogue_kct"
+              href="https://www.instagram.com/urban_vouge_kct"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 font-mono text-[9px] tracking-[0.3em] uppercase text-muted-foreground hover:text-primary transition-colors"
@@ -104,7 +104,7 @@ export function Navbar() {
                 Early Access
               </Link>
               <a
-                href="https://instagram.com/urban_vogue_kct"
+                href="https://www.instagram.com/urban_vouge_kct"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 font-mono text-[10px] tracking-[0.3em] uppercase text-muted-foreground"

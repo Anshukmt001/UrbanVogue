@@ -91,7 +91,7 @@ export function Hero() {
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
           </Link>
           <a
-            href="https://instagram.com/urban_vogue_kct"
+            href="https://www.instagram.com/urban_vouge_kct"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 w-full sm:w-auto px-8 py-4 border border-border text-xs font-medium tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-silver transition-all duration-300"

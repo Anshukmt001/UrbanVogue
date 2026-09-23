@@ -2,7 +2,7 @@ import Link from "next/link";
 import { InstagramIcon } from "@/components/instagram-icon";
 
 const LINKS = [
-  { label: "Instagram", href: "https://instagram.com/urban_vogue_kct", external: true },
+  { label: "Instagram", href: "https://www.instagram.com/urban_vouge_kct", external: true },
   { label: "Early Access", href: "/join" },
   { label: "Admin Login", href: "/admin/login" },
   { label: "Privacy", href: "/#" },
