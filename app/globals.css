@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a0a;
+  --foreground: #f5f5f0;
+  --card: #141414;
+  --card-foreground: #f5f5f0;
+  --popover: #141414;
+  --popover-foreground: #f5f5f0;
+  --primary: #c9a86a;
+  --primary-foreground: #0a0a0a;
+  --secondary: #141414;
+  --secondary-foreground: #f5f5f0;
+  --muted: #141414;
+  --muted-foreground: #a3a3a3;
+  --accent: #c9a86a;
+  --accent-foreground: #0a0a0a;
+  --destructive: #e62429;
+  --destructive-foreground: #ffffff;
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #c9a86a;
+  --radius: 0px;
+  --silver: #a3a3a3;
+  --bone: #f5f5f0;
+  --red: #e62429;
+  --red-deep: #8f0d12;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-silver: var(--silver);
+  --color-bone: var(--bone);
+  --color-red: var(--red);
+  --color-red-deep: var(--red-deep);
+  --radius: var(--radius);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-geist-mono);
+  --font-headline: var(--font-anton);
+  --font-editorial: var(--font-bodoni);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: auto;
+  overflow-x: clip;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+}
+
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ---- Editorial utilities ---- */
+
+/* Marquee ticker */
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  animation: marquee 28s linear infinite;
+}
+
+.marquee-track-fast {
+  animation: marquee 18s linear infinite;
+}
+
+.marquee-reverse {
+  animation-direction: reverse;
+}
+
+/* Cut corner (notch) */
+.clip-notch {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 14px) 0,
+    100% 14px,
+    100% 100%,
+    14px 100%,
+    0 calc(100% - 14px)
+  );
+}
+
+.clip-notch-sm {
+  clip-path: polygon(
+    0 0,
+    calc(100% - 8px) 0,
+    100% 8px,
+    100% 100%,
+    8px 100%,
+    0 calc(100% - 8px)
+  );
+}
+
+/* Outlined display text */
+.text-stroke-silver {
+  -webkit-text-stroke: 1px rgba(163, 163, 163, 0.25);
+}
+
+.text-stroke-ink {
+  -webkit-text-stroke: 1px #141414;
+}
+
+.text-stroke-bone {
+  -webkit-text-stroke: 1px rgba(245, 245, 240, 0.28);
+  color: transparent;
+}
+
+/* Diagonal stripes (brutalist texture) */
+.diagonal-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(201, 168, 106, 0.12) 0px,
+    rgba(201, 168, 106, 0.12) 2px,
+    transparent 2px,
+    transparent 14px
+  );
+}
+
+/* Fine grid backdrop */
+.grid-pattern {
+  background-image:
+    linear-gradient(to right, rgba(245, 245, 240, 0.025) 1px, transparent
+      1px),
+    linear-gradient(to bottom, rgba(245, 245, 240, 0.025) 1px, transparent
+      1px);
+  background-size: 48px 48px;
+}
+
+/* Floating hairline label */
+.hairline-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

@@ -1,0 +1,273 @@
+"use client";
+
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ScanLine, Camera, CheckCircle2, XCircle, Ban, SearchX } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
+
+interface ScannedMember {
+  name: string;
+  membershipNumber: number;
+  discountPercentage: 5 | 10;
+}
+
+type Outcome =
+  | { kind: "valid"; member: ScannedMember }
+  | { kind: "redeemed"; member: ScannedMember; message: string }
+  | { kind: "revoked"; member: ScannedMember | null }
+  | { kind: "not_found" }
+  | { kind: "error"; message: string };
+
+export function QRScanner() {
+  const [input, setInput] = useState("");
+  const [scanning, setScanning] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+
+  function parseNumber(value: string): number | null {
+    const match = value.match(/uv-(\d+)/i) || value.match(/(\d)/);
+    if (!match) return null;
+    const n = parseInt(match[1], 10);
+    if (isNaN(n) || n < 1) return null;
+    return n;
+  }
+
+  async function doScan() {
+    const membershipNumber = parseNumber(input);
+    if (!membershipNumber) {
+      setOutcome({ kind: "error", message: "Enter a member number or a pass QR value like UV-3." });
+      return;
+    }
+    setScanning(true);
+    setOutcome(null);
+    try {
+      const res = await fetch(`/api/members/${membershipNumber}`);
+      if (res.ok) {
+        const json = await res.json();
+        setOutcome({
+          kind: "valid",
+          member: {
+            name: json.data.name,
+            membershipNumber: json.data.membershipNumber,
+            discountPercentage: json.data.discountPercentage,
+          },
+        });
+      } else if (res.status === 403) {
+        setOutcome({ kind: "revoked", member: null });
+      } else if (res.status === 404) {
+        setOutcome({ kind: "not_found" });
+      } else {
+        setOutcome({ kind: "error", message: "Something went wrong. Try again." });
+      }
+    } catch {
+      setOutcome({ kind: "error", message: "Could not reach the server. Try again." });
+    } finally {
+      setScanning(false);
+    }
+  }
+
+  async function doRedeem(member: ScannedMember) {
+    setRedeeming(true);
+    try {
+      const res = await fetch("/api/admin/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ membershipNumber: member.membershipNumber }),
+      });
+      const json = await res.json().catch(() => null);
+      if (res.ok && json?.success) {
+        setOutcome({ kind: "redeemed", member, message: "Discount applied." });
+      } else if (res.status === 403) {
+        setOutcome({ kind: "revoked", member });
+      } else if (res.status === 409) {
+        setOutcome({
+          kind: "redeemed",
+          member,
+          message: "This discount has already been redeemed.",
+        });
+      } else {
+        setOutcome({ kind: "error", message: "Could not redeem. Try again." });
+      }
+    } catch {
+      setOutcome({ kind: "error", message: "Could not reach the server. Try again." });
+    } finally {
+      setRedeeming(false);
+    }
+  }
+
+  function resetScan() {
+    setOutcome(null);
+    setInput("");
+  }
+
+  const invalidKind =
+    outcome?.kind === "revoked" || outcome?.kind === "not_found";
+  const member = outcome && "member" in outcome ? outcome.member : null;
+
+  return (
+    <div className="grid lg:grid-cols-2 gap-8">
+      {/* Scanner */}
+      <div className="border border-border bg-card p-6 sm:p-10">
+        <div className="flex items-center gap-2 mb-2">
+          <ScanLine className="h-4 w-4 text-primary" />
+          <h2 className="font-headline text-xl uppercase tracking-tight">
+            Scan Member Pass
+          </h2>
+        </div>
+        <p className="font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground mb-6">
+          Point the camera at the Urban Vogue QR code — or paste the pass value below.
+        </p>
+
+        <div className="relative aspect-[4/3] overflow-hidden bg-background border border-border">
+          <div className="absolute inset-0 grid-pattern opacity-40" />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="relative h-40 w-40">
+              <span className="absolute top-0 left-0 h-8 w-8 border-t-2 border-l-2 border-primary" />
+              <span className="absolute top-0 right-0 h-8 w-8 border-t-2 border-r-2 border-primary" />
+              <span className="absolute bottom-0 left-0 h-8 w-8 border-b-2 border-l-2 border-primary" />
+              <span className="absolute bottom-0 right-0 h-8 w-8 border-b-2 border-r-2 border-primary" />
+              <motion.span
+                animate={{ y: [-64, 64, -64] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
+                className="absolute left-0 right-0 h-px bg-primary"
+              />
+            </div>
+          </div>
+          <div className="absolute bottom-4 left-0 right-0 text-center">
+            <p className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
+              {scanning ? "Scanning…" : "Camera preview"}
+            </p>
+          </div>
+        </div>
+
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") doScan();
+          }}
+          placeholder="UV-3 or verify link…"
+          className="mt-6 w-full border border-border bg-background px-4 py-3 font-mono text-sm text-bone placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+        />
+
+        <button
+          onClick={doScan}
+          disabled={scanning}
+          className="clip-notch mt-3 flex w-full items-center justify-center gap-2 bg-bone px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-background hover:bg-[#c9a86a] transition-colors disabled:opacity-60 cursor-pointer"
+        >
+          <Camera className="h-4 w-4" />
+          {scanning ? "Scanning…" : "Scan Pass"}
+        </button>
+        <p className="mt-3 text-center font-mono text-[7px] tracking-[0.24em] uppercase text-muted-foreground">
+          Verifies against the live registry · revoked passes show as invalid
+        </p>
+      </div>
+
+      {/* Result */}
+      <div className="border border-border bg-card p-6 sm:p-10 flex flex-col">
+        <h2 className="font-headline text-xl uppercase tracking-tight mb-8">
+          Scan Result
+        </h2>
+
+        {!outcome && (
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-16">
+            <ScanLine className="h-10 w-10 text-muted-foreground/30" strokeWidth={1} />
+            <p className="mt-4 font-mono text-[9px] tracking-[0.3em] uppercase text-muted-foreground">
+              Awaiting a scan
+            </p>
+          </div>
+        )}
+
+        {outcome && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+            className="flex-1 flex flex-col"
+          >
+            {invalidKind && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-16 border border-red-500/30 bg-red-500/5">
+                {outcome.kind === "revoked" ? (
+                  <Ban className="h-10 w-10 text-red-400" strokeWidth={1.5} />
+                ) : (
+                  <SearchX className="h-10 w-10 text-red-400" strokeWidth={1.5} />
+                )}
+                <Badge tone="invalid" className="self-center mt-4">
+                  {outcome.kind === "revoked" ? "Invalid · Revoked" : "Invalid Pass"}
+                </Badge>
+                <p className="mt-3 max-w-xs font-mono text-[10px] leading-relaxed tracking-[0.12em] text-muted-foreground">
+                  {outcome.kind === "revoked"
+                    ? "This pass was revoked by admin and can no longer be used."
+                    : "No member matches this pass in the registry."}
+                </p>
+              </div>
+            )}
+
+            {outcome.kind === "error" && (
+              <div className="flex-1 flex flex-col items-center justify-center text-center py-16 border border-red-500/30 bg-red-500/5">
+                <XCircle className="h-10 w-10 text-red-400" strokeWidth={1.5} />
+                <Badge tone="invalid" className="self-center mt-4">
+                  Scan Failed
+                </Badge>
+                <p className="mt-3 font-mono text-[10px] tracking-[0.12em] text-muted-foreground">
+                  {outcome.message}
+                </p>
+              </div>
+            )}
+
+            {(outcome.kind === "valid" || outcome.kind === "redeemed") && member && (
+              <>
+                <Badge
+                  tone={outcome.kind === "valid" ? "active" : "redeemed"}
+                  className="self-start mb-4"
+                >
+                  {outcome.kind === "valid" ? "Valid Member" : "Discount Redeemed"}
+                </Badge>
+                <p className="font-headline text-5xl leading-none text-bone">
+                  #{String(member.membershipNumber).padStart(3, "0")}
+                </p>
+                <p className="mt-2 text-base text-muted-foreground tracking-wide">
+                  {member.name}
+                </p>
+                <div className="mt-6 flex items-center gap-3 border border-border bg-background px-6 py-4 self-start">
+                  <span className="font-headline text-3xl leading-none text-primary">
+                    {member.discountPercentage}%
+                  </span>
+                  <span className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
+                    Off
+                    <br />
+                    Everything
+                  </span>
+                </div>
+                {outcome.kind === "redeemed" && (
+                  <p className="mt-4 font-mono text-[9px] tracking-[0.24em] uppercase text-amber-400">
+                    {outcome.message}
+                  </p>
+                )}
+              </>
+            )}
+
+            <div className="mt-auto pt-8 space-y-3">
+              {outcome.kind === "valid" && member && (
+                <button
+                  onClick={() => doRedeem(member)}
+                  disabled={redeeming}
+                  className="clip-notch flex w-full items-center justify-center gap-2 bg-primary px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-primary-foreground hover:bg-[#b7964e] transition-colors disabled:opacity-60 cursor-pointer"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {redeeming ? "Applying…" : "Redeem Discount"}
+                </button>
+              )}
+              <button
+                onClick={resetScan}
+                className="w-full border border-border px-6 py-3 text-[10px] font-bold tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-silver transition-all cursor-pointer"
+              >
+                New Scan
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+}
