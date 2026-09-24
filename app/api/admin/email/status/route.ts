@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getAdminSession, unauthorizedResponse } from "@/lib/admin-auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Member } from "@/models";
 import { getEmailConfig } from "@/lib/email/client";
@@ -8,12 +8,9 @@ import { getBaseUrl } from "@/lib/email/member-welcome";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 }
-    );
+  const admin = await getAdminSession();
+  if (!admin) {
+    return unauthorizedResponse();
   }
 
   try {

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getAdminSession, unauthorizedResponse } from "@/lib/admin-auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Member, Redemption } from "@/models";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 }
-    );
+  const admin = await getAdminSession();
+  if (!admin) {
+    return unauthorizedResponse();
   }
 
   try {
@@ -82,7 +79,7 @@ export async function POST(request: NextRequest) {
       memberId: member._id,
       membershipNumber: member.membershipNumber,
       discountPercentage: member.discountPercentage,
-      redeemedBy: session.user.email,
+      redeemedBy: admin.email,
       redeemedAt: now,
     });
 

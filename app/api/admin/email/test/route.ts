@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { getAdminSession, unauthorizedResponse } from "@/lib/admin-auth";
 import { getEmailConfig } from "@/lib/email/client";
 import { sendWelcomeEmail } from "@/lib/email/sendWelcomeEmail";
 import { buildQrDataUrl, buildPassUrl } from "@/lib/email/member-welcome";
@@ -7,12 +7,9 @@ import { isEmailShape } from "@/lib/email/client";
 import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.email) {
-    return NextResponse.json(
-      { success: false, error: "UNAUTHORIZED" },
-      { status: 401 }
-    );
+  const admin = await getAdminSession();
+  if (!admin) {
+    return unauthorizedResponse();
   }
 
   const rl = rateLimit(request, {
@@ -30,7 +27,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const requested = typeof body?.email === "string" ? body.email.trim() : "";
-    const recipient = requested || session.user.email;
+    const recipient = requested || admin.email;
 
     if (!recipient || !isEmailShape(recipient.toLowerCase())) {
       return NextResponse.json(

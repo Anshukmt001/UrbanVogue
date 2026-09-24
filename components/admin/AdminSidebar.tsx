@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { LayoutDashboard, Users, ScanLine, Settings, LogOut, ArrowUpRight, Ticket, Mail } from "lucide-react";
 import { MOCK_ADMIN } from "@/lib/mock-data";
 
@@ -16,10 +17,9 @@ const NAV_ITEMS = [
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const router = useRouter();
 
   function handleLogout() {
-    router.push("/admin/login");
+    void signOut({ callbackUrl: "/admin/login" });
   }
 
   return (

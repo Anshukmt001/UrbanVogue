@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ArrowLeft, Eye, EyeOff, MapPin } from "lucide-react";
 import Link from "next/link";
+import { signIn } from "next-auth/react";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Navbar } from "@/components/Navbar";
@@ -15,13 +16,29 @@ export default function AdminLoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setError(null);
     setLoading(true);
-    setTimeout(() => {
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError("Invalid email or password");
+        setLoading(false);
+        return;
+      }
       router.push("/admin");
-    }, 700);
+      router.refresh();
+    } catch {
+      setError("Login failed. Please try again.");
+      setLoading(false);
+    }
   }
 
   return (
@@ -119,6 +136,14 @@ export default function AdminLoginPage() {
                     </button>
                   </div>
                 </div>
+                {error ? (
+                  <p
+                    role="alert"
+                    className="font-mono text-[10px] tracking-[0.18em] uppercase text-red-500"
+                  >
+                    {error}
+                  </p>
+                ) : null}
                 <Button
                   type="submit"
                   variant="inverse"
@@ -131,7 +156,7 @@ export default function AdminLoginPage() {
               </form>
 
               <p className="mt-8 text-center font-mono text-[8px] tracking-[0.26em] uppercase text-muted-foreground">
-                Mock mode · any credentials work for now
+                Authorized admins only
               </p>
             </motion.div>
           </div>

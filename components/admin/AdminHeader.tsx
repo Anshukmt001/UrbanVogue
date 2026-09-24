@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
 import {
   LayoutDashboard,
   Users,
@@ -23,10 +24,9 @@ const MOBILE_NAV = [
 
 export function AdminHeader() {
   const pathname = usePathname();
-  const router = useRouter();
 
   function handleLogout() {
-    router.push("/admin/login");
+    void signOut({ callbackUrl: "/admin/login" });
   }
 
   return (
