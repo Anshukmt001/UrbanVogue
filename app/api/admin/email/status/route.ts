@@ -49,6 +49,7 @@ export async function GET() {
         skipped,
         remaining: Math.max(0, withEmail - sent),
         configured: Boolean(config.apiKey && config.from),
+        provider: config.provider,
         from: config.from ?? null,
         replyTo: config.replyTo ?? null,
         hasApiKey: Boolean(config.apiKey),

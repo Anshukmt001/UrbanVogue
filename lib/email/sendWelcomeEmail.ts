@@ -1,5 +1,12 @@
 import { buildWelcomeEmail } from "./templates/welcome";
-import { getEmailConfig, getResendClient, isEmailShape } from "./client";
+import {
+  getEmailConfig,
+  getResendClient,
+  isEmailShape,
+  extractEmailAddress,
+  extractDisplayName,
+  type EmailConfig,
+} from "./client";
 
 export type WelcomeEmailErrorCode =
   | "not_configured"
@@ -46,6 +53,70 @@ function failure(
   return { ok: false, code, messageId: null, error };
 }
 
+function mapBrevoError(status: number, code: string, message: string): WelcomeEmailErrorCode {
+  const lower = `${code} ${message}`.toLowerCase();
+  if (status === 401 || status === 403) {
+    if (lower.includes("sender") || lower.includes("verif")) {
+      return "invalid_from_address";
+    }
+    return "invalid_api_key";
+  }
+  if (status === 429 || lower.includes("rate")) return "rate_limited";
+  if (lower.includes("send limit") || lower.includes("quota")) return "daily_quota_exceeded";
+  if (lower.includes("sender") || lower.includes("verif")) return "invalid_from_address";
+  if (status === 400 || status === 422) return "invalid_recipient";
+  return "send_failed";
+}
+
+async function sendViaBrevo(
+  config: EmailConfig,
+  recipient: string,
+  subject: string,
+  html: string,
+  text: string
+): Promise<SendWelcomeEmailResult> {
+  const fromEmail = config.from ? extractEmailAddress(config.from) : null;
+  if (!config.apiKey || !fromEmail) {
+    return failure("not_configured", "BREVO_API_KEY or BREVO_FROM_EMAIL is not valid");
+  }
+  const fromName = config.from ? extractDisplayName(config.from) : null;
+  const replyToEmail = config.replyTo ? extractEmailAddress(config.replyTo) : null;
+
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": config.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { email: fromEmail, ...(fromName ? { name: fromName } : {}) },
+        to: [{ email: recipient }],
+        subject,
+        htmlContent: html,
+        textContent: text,
+        ...(replyToEmail ? { replyTo: { email: replyToEmail } } : {}),
+      }),
+      cache: "no-store",
+    });
+
+    if (res.ok) {
+      const body = (await res.json().catch(() => ({}))) as { messageId?: string };
+      return { ok: true, code: "sent", messageId: body.messageId ?? null, error: null };
+    }
+
+    const body = (await res.json().catch(() => ({}))) as {
+      code?: string;
+      message?: string;
+    };
+    const code = mapBrevoError(res.status, body.code ?? "", body.message ?? res.statusText);
+    return failure(code, `${body.code ?? res.status}: ${body.message ?? res.statusText}`);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return failure("send_failed", message);
+  }
+}
+
 export async function sendWelcomeEmail(
   input: SendWelcomeEmailInput
 ): Promise<SendWelcomeEmailResult> {
@@ -61,11 +132,11 @@ export async function sendWelcomeEmail(
   if (!config.apiKey || !config.from) {
     return failure(
       "not_configured",
-      "RESEND_API_KEY or RESEND_FROM_EMAIL is not set"
+      "Email provider is not configured (set BREVO_API_KEY + BREVO_FROM_EMAIL, or RESEND_API_KEY + RESEND_FROM_EMAIL)"
     );
   }
   if (!isEmailShape(config.from.replace(/^.*<|>$/g, ""))) {
-    return failure("invalid_from_address", "RESEND_FROM_EMAIL is not valid");
+    return failure("invalid_from_address", "FROM email address is not valid");
   }
 
   const { subject, html, text } = buildWelcomeEmail({
@@ -75,6 +146,10 @@ export async function sendWelcomeEmail(
     passUrl: input.passUrl,
     qrCode: input.qrCode,
   });
+
+  if (config.provider === "brevo") {
+    return sendViaBrevo(config, email, subject, html, text);
+  }
 
   try {
     const resend = getResendClient(config.apiKey);
