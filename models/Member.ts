@@ -5,7 +5,7 @@ export interface IMember extends Document {
   name: string;
   mobile: string;
   email: string | undefined;
-  discountPercentage: 10 | 5;
+  discountPercentage: number;
   qrToken: string;
   status: "active" | "revoked";
   discountRedeemed: boolean;
@@ -42,7 +42,8 @@ const memberSchema = new Schema<IMember>(
     discountPercentage: {
       type: Number,
       required: true,
-      enum: [10, 5],
+      min: 0,
+      max: 100,
     },
     qrToken: {
       type: String,

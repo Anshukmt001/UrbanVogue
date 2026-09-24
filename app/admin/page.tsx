@@ -14,6 +14,8 @@ interface StatsData {
   totalMembers: number;
   tenPercentMembers: number;
   fivePercentMembers: number;
+  tierOnePercent?: number;
+  tierTwoPercent?: number;
   remaining: number;
   redeemed: number;
   unredeemed: number;
@@ -41,7 +43,7 @@ export default function AdminDashboardPage() {
       name: String(m.name ?? ""),
       mobile: String(m.mobile ?? ""),
       email: m.email ? String(m.email) : undefined,
-      discountPercentage: (m.discountPercentage === 5 ? 5 : 10) as 5 | 10,
+      discountPercentage: Number(m.discountPercentage ?? 0),
       membershipTier:
         Number(m.membershipNumber) <= 50 ? "first100" : "next50",
       status: (m.status === "revoked" ? "revoked" : "active") as
@@ -90,10 +92,13 @@ export default function AdminDashboardPage() {
       }
     : MOCK_CAMPAIGN;
 
+  const tierOnePercent = stats?.tierOnePercent ?? 10;
+  const tierTwoPercent = stats?.tierTwoPercent ?? 5;
+
   const STATS = [
     { label: "Total Members", value: campaign.claimed, sub: `of ${campaign.total} passes` },
-    { label: "10% Tier", value: campaign.tenPercentMembers, sub: `of ${campaign.tenPercentLimit}` },
-    { label: "5% Tier", value: campaign.fivePercentMembers, sub: `of ${campaign.fivePercentLimit}` },
+    { label: `${tierOnePercent}% Tier`, value: campaign.tenPercentMembers, sub: `of ${campaign.tenPercentLimit}` },
+    { label: `${tierTwoPercent}% Tier`, value: campaign.fivePercentMembers, sub: `of ${campaign.fivePercentLimit}` },
     { label: "Remaining", value: campaign.remaining, sub: "passes left" },
     { label: "Redeemed", value: campaign.redeemed, sub: "discounts used" },
     { label: "Unredeemed", value: campaign.unredeemed, sub: "still active" },
@@ -178,13 +183,13 @@ export default function AdminDashboardPage() {
             <div className="border border-border p-4">
               <p className="font-headline text-2xl text-primary">{campaign.tenPercentMembers}</p>
               <p className="font-mono text-[8px] tracking-[0.24em] uppercase text-muted-foreground mt-1">
-                of {campaign.tenPercentLimit} · 10% members
+                of {campaign.tenPercentLimit} · {tierOnePercent}% members
               </p>
             </div>
             <div className="border border-border p-4">
               <p className="font-headline text-2xl text-muted-foreground">{campaign.fivePercentMembers}</p>
               <p className="font-mono text-[8px] tracking-[0.24em] uppercase text-muted-foreground mt-1">
-                of {campaign.fivePercentLimit} · 5% members
+                of {campaign.fivePercentLimit} · {tierTwoPercent}% members
               </p>
             </div>
           </div>

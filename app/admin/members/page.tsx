@@ -6,10 +6,8 @@ import { Search, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { MemberTable } from "@/components/admin/MemberTable";
 import { MOCK_CAMPAIGN, type MockMember } from "@/lib/mock-data";
 
-const FILTERS = [
+const BASE_FILTERS = [
   { key: "all", label: "All" },
-  { key: "10", label: "10%" },
-  { key: "5", label: "5%" },
   { key: "active", label: "Active" },
   { key: "revoked", label: "Revoked" },
   { key: "redeemed", label: "Redeemed" },
@@ -20,10 +18,40 @@ const PER_PAGE = 8;
 
 export default function AdminMembersPage() {
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("all");
+  const [filter, setFilter] = useState<string>("all");
   const [page, setPage] = useState(1);
   const [rows, setRows] = useState<MockMember[]>([]);
   const [total, setTotal] = useState(0);
+  const [tierOnePct, setTierOnePct] = useState(10);
+  const [tierTwoPct, setTierTwoPct] = useState(5);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!active || !json?.success) return;
+        setTierOnePct(Number(json.data.tierOnePercent) || 10);
+        setTierTwoPct(Number(json.data.tierTwoPercent) || 5);
+      })
+      .catch(() => {
+        // keep defaults
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filters = [
+    BASE_FILTERS[0],
+    ...(tierOnePct === tierTwoPct
+      ? [{ key: `pct:${tierOnePct}`, label: `${tierOnePct}%` }]
+      : [
+          { key: `pct:${tierOnePct}`, label: `${tierOnePct}%` },
+          { key: `pct:${tierTwoPct}`, label: `${tierTwoPct}%` },
+        ]),
+    ...BASE_FILTERS.slice(1),
+  ];
 
   function toMockMember(m: Record<string, unknown>): MockMember {
     return {
@@ -31,7 +59,7 @@ export default function AdminMembersPage() {
       name: String(m.name ?? ""),
       mobile: String(m.mobile ?? ""),
       email: m.email ? String(m.email) : undefined,
-      discountPercentage: (m.discountPercentage === 5 ? 5 : 10) as 5 | 10,
+      discountPercentage: Number(m.discountPercentage ?? 0),
       membershipTier: Number(m.membershipNumber) <= 50 ? "first100" : "next50",
       status: (m.status === "revoked" ? "revoked" : "active") as
         | "active"
@@ -49,7 +77,7 @@ export default function AdminMembersPage() {
       pageSize: String(PER_PAGE),
     });
     if (search.trim()) params.set("search", search.trim());
-    if (filter === "10" || filter === "5") params.set("discount", filter);
+    if (filter.startsWith("pct:")) params.set("discount", filter.slice(4));
     if (filter === "revoked") params.set("status", "revoked");
     if (filter === "active") params.set("status", "active");
     if (filter === "redeemed") params.set("redeemed", "true");
@@ -125,7 +153,7 @@ export default function AdminMembersPage() {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <button
               key={f.key}
               onClick={() => {

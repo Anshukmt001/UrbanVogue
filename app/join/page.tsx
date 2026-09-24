@@ -10,10 +10,13 @@ import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
+import { MoreOffers } from "@/components/MoreOffers";
 import { normalizeMobile } from "@/lib/validations/member";
+import { usePublicSettings } from "@/lib/public-settings";
 
 export default function JoinPage() {
   const router = useRouter();
+  const settings = usePublicSettings();
   const [form, setForm] = useState({
     fullName: "",
     mobile: "",
@@ -106,6 +109,10 @@ export default function JoinPage() {
     form.email.includes("@") &&
     agree;
 
+  const tierOneEnd = settings.tenPercentLimit;
+  const tierTwoStart = settings.tenPercentLimit + 1;
+  const tierTwoEnd = settings.earlyAccessLimit;
+
   return (
     <>
       <Navbar />
@@ -142,11 +149,14 @@ export default function JoinPage() {
                 <span className="h-2 w-2 bg-primary mt-2 shrink-0" />
                 <div>
                   <p className="font-headline text-3xl sm:text-4xl uppercase tracking-tight leading-[1.05]">
-                    Only 100 early-access passes will be issued.
+                    Only {settings.earlyAccessLimit} early-access passes will be
+                    issued.
                   </p>
                   <p className="mt-5 text-sm text-muted-foreground leading-relaxed max-w-md">
-                    The first 50 members lock in 10% off everything. The next
-                    50 lock in 5% off. After that, the doors close.
+                    The first {settings.tenPercentLimit} members lock in{" "}
+                    {settings.tierOnePercent}% off everything. The next{" "}
+                    {settings.fivePercentLimit} lock in {settings.tierTwoPercent}
+                    % off. After that, the doors close.
                   </p>
                 </div>
               </div>
@@ -154,27 +164,33 @@ export default function JoinPage() {
               <div className="mt-14 space-y-4">
                 <div className="flex items-center justify-between border-b border-border pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="font-headline text-2xl text-primary">01 — 50</span>
+                    <span className="font-headline text-2xl text-primary">
+                      01 — {tierOneEnd}
+                    </span>
                     <span className="font-mono text-[9px] tracking-[0.28em] uppercase text-muted-foreground">
                       Members
                     </span>
                   </div>
                   <span className="clip-notch-sm bg-primary/10 border border-primary/40 text-primary px-4 py-2 font-mono text-[9px] tracking-[0.28em] uppercase">
-                    10% Off
+                    {settings.tierOnePercent}% Off
                   </span>
                 </div>
                 <div className="flex items-center justify-between border-b border-border pb-4">
                   <div className="flex items-center gap-3">
-                    <span className="font-headline text-2xl text-muted-foreground">51 — 100</span>
+                    <span className="font-headline text-2xl text-muted-foreground">
+                      {tierTwoStart} — {tierTwoEnd}
+                    </span>
                     <span className="font-mono text-[9px] tracking-[0.28em] uppercase text-muted-foreground">
                       Members
                     </span>
                   </div>
                   <span className="clip-notch-sm bg-secondary border border-silver/30 text-muted-foreground px-4 py-2 font-mono text-[9px] tracking-[0.28em] uppercase">
-                    5% Off
+                    {settings.tierTwoPercent}% Off
                   </span>
                 </div>
               </div>
+
+              <MoreOffers className="mt-12" />
 
               <div className="mt-14 hidden lg:block max-w-md">
                 <p className="font-editorial italic text-2xl leading-snug text-muted-foreground">
@@ -273,7 +289,8 @@ export default function JoinPage() {
                 </Button>
 
                 <p className="text-center font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground">
-                  50 × 10% off · 50 × 5% off
+                  {settings.tenPercentLimit} × {settings.tierOnePercent}% off ·{" "}
+                  {settings.fivePercentLimit} × {settings.tierTwoPercent}% off
                 </p>
               </form>
             </div>

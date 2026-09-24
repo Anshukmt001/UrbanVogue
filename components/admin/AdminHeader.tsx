@@ -9,12 +9,14 @@ import {
   Settings,
   LogOut,
   ArrowUpRight,
+  Ticket,
 } from "lucide-react";
 import { MOCK_ADMIN } from "@/lib/mock-data";
 
 const MOBILE_NAV = [
   { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
   { href: "/admin/members", icon: Users, label: "Members" },
+  { href: "/admin/coupons", icon: Ticket, label: "Coupons" },
   { href: "/admin/scanner", icon: ScanLine, label: "Scanner" },
   { href: "/admin/settings", icon: Settings, label: "Settings" },
 ];

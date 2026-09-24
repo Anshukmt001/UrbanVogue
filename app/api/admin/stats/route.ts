@@ -13,6 +13,10 @@ export async function GET() {
     const limit = settings.earlyAccessLimit;
     const tenPercentLimit = settings.tenPercentLimit;
     const fivePercentLimit = settings.fivePercentLimit;
+    const tierOnePercent =
+      typeof settings.tierOnePercent === "number" ? settings.tierOnePercent : 10;
+    const tierTwoPercent =
+      typeof settings.tierTwoPercent === "number" ? settings.tierTwoPercent : 5;
 
     const [
       totalMembers,
@@ -22,8 +26,8 @@ export async function GET() {
       registrationsToday,
     ] = await Promise.all([
       Member.countDocuments(),
-      Member.countDocuments({ discountPercentage: 10 }),
-      Member.countDocuments({ discountPercentage: 5 }),
+      Member.countDocuments({ discountPercentage: tierOnePercent }),
+      Member.countDocuments({ discountPercentage: tierTwoPercent }),
       Member.countDocuments({ discountRedeemed: true }),
       Member.countDocuments({ createdAt: { $gte: today } }),
     ]);
@@ -34,6 +38,8 @@ export async function GET() {
         totalMembers,
         tenPercentMembers,
         fivePercentMembers,
+        tierOnePercent,
+        tierTwoPercent,
         remaining: Math.max(0, limit - totalMembers),
         redeemed,
         unredeemed: totalMembers - redeemed,

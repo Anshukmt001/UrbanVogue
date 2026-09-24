@@ -38,7 +38,7 @@ export default function AdminMemberDetailPage({
           name: String(d.name ?? ""),
           mobile: String(d.mobile ?? ""),
           email: d.email ? String(d.email) : undefined,
-          discountPercentage: (d.discountPercentage === 5 ? 5 : 10) as 5 | 10,
+          discountPercentage: Number(d.discountPercentage ?? 0),
           membershipTier:
             Number(d.membershipNumber) <= 50 ? "first100" : "next50",
           status: (d.status === "revoked" ? "revoked" : "active") as

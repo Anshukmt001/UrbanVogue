@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/Badge";
 interface ScannedMember {
   name: string;
   membershipNumber: number;
-  discountPercentage: 5 | 10;
+  discountPercentage: number;
 }
 
 type Outcome =

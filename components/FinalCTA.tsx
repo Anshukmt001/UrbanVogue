@@ -1,6 +1,11 @@
+"use client";
+
 import Link from "next/link";
+import { usePublicSettings } from "@/lib/public-settings";
 
 export function FinalCTA() {
+  const settings = usePublicSettings();
+
   return (
     <section className="relative bg-background text-foreground py-28 sm:py-36 overflow-hidden">
       <div className="absolute inset-0 diagonal-stripes opacity-[0.06]" aria-hidden />
@@ -16,7 +21,7 @@ export function FinalCTA() {
           </span>
         </h2>
         <p className="mx-auto mt-8 max-w-md text-sm sm:text-base text-muted-foreground">
-          Early access is limited to 100 members. When the circle is full, it&apos;s
+          Early access is limited to {settings.earlyAccessLimit} members. When the circle is full, it&apos;s
           closed — for good.
         </p>
         <div className="mt-12">
@@ -29,10 +34,10 @@ export function FinalCTA() {
         </div>
         <div className="mt-12 flex flex-wrap items-center justify-center gap-3 font-mono text-[10px] tracking-[0.3em] uppercase">
           <span className="clip-notch-sm border border-primary/40 bg-primary/10 px-5 py-3 text-primary">
-            50 × 10% OFF
+            {settings.tenPercentLimit} × {settings.tierOnePercent}% OFF
           </span>
           <span className="clip-notch-sm border border-border bg-card px-5 py-3 text-muted-foreground">
-            50 × 5% OFF
+            {settings.fivePercentLimit} × {settings.tierTwoPercent}% OFF
           </span>
         </div>
       </div>

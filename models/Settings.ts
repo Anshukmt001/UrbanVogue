@@ -5,6 +5,8 @@ export interface ISettings extends Document {
   earlyAccessLimit: number;
   tenPercentLimit: number;
   fivePercentLimit: number;
+  tierOnePercent: number;
+  tierTwoPercent: number;
   launchDate: Date | null;
   allowRegistration: boolean;
   createdAt: Date;
@@ -37,6 +39,20 @@ const settingsSchema = new Schema<ISettings>(
       default: 50,
       min: 0,
     },
+    tierOnePercent: {
+      type: Number,
+      required: true,
+      default: 10,
+      min: 0,
+      max: 100,
+    },
+    tierTwoPercent: {
+      type: Number,
+      required: true,
+      default: 5,
+      min: 0,
+      max: 100,
+    },
     launchDate: {
       type: Date,
       default: null,
@@ -61,6 +77,8 @@ export async function getOrCreateSettings(): Promise<ISettings> {
   if (!settings) {
     settings = await Settings.create({});
   }
+  if (typeof settings.tierOnePercent !== "number") settings.tierOnePercent = 10;
+  if (typeof settings.tierTwoPercent !== "number") settings.tierTwoPercent = 5;
   return settings;
 }
 

@@ -13,6 +13,8 @@ export async function GET() {
         earlyAccessLimit: settings.earlyAccessLimit,
         tenPercentLimit: settings.tenPercentLimit,
         fivePercentLimit: settings.fivePercentLimit,
+        tierOnePercent: settings.tierOnePercent,
+        tierTwoPercent: settings.tierTwoPercent,
         launchDate: settings.launchDate,
         allowRegistration: settings.allowRegistration,
       },
@@ -34,6 +36,8 @@ export async function PATCH(request: NextRequest) {
       earlyAccessLimit,
       tenPercentLimit,
       fivePercentLimit,
+      tierOnePercent,
+      tierTwoPercent,
       launchDate,
       allowRegistration,
     } = body;
@@ -62,7 +66,7 @@ export async function PATCH(request: NextRequest) {
       const num = parseInt(String(tenPercentLimit), 10);
       if (isNaN(num) || num < 0) {
         return NextResponse.json(
-          { success: false, error: "Invalid 10% limit" },
+          { success: false, error: "Invalid tier 1 limit" },
           { status: 400 }
         );
       }
@@ -72,7 +76,27 @@ export async function PATCH(request: NextRequest) {
       const num = parseInt(String(fivePercentLimit), 10);
       if (isNaN(num) || num < 0) {
         return NextResponse.json(
-          { success: false, error: "Invalid 5% limit" },
+          { success: false, error: "Invalid tier 2 limit" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (tierOnePercent !== undefined) {
+      const num = parseInt(String(tierOnePercent), 10);
+      if (isNaN(num) || num < 0 || num > 100) {
+        return NextResponse.json(
+          { success: false, error: "Invalid tier 1 discount" },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (tierTwoPercent !== undefined) {
+      const num = parseInt(String(tierTwoPercent), 10);
+      if (isNaN(num) || num < 0 || num > 100) {
+        return NextResponse.json(
+          { success: false, error: "Invalid tier 2 discount" },
           { status: 400 }
         );
       }
@@ -95,7 +119,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json(
         {
           success: false,
-          error: "10% limit + 5% limit cannot exceed maximum members",
+          error: "Tier 1 limit + tier 2 limit cannot exceed maximum members",
         },
         { status: 400 }
       );
@@ -111,6 +135,10 @@ export async function PATCH(request: NextRequest) {
       update.tenPercentLimit = parseInt(String(tenPercentLimit), 10);
     if (fivePercentLimit !== undefined)
       update.fivePercentLimit = parseInt(String(fivePercentLimit), 10);
+    if (tierOnePercent !== undefined)
+      update.tierOnePercent = parseInt(String(tierOnePercent), 10);
+    if (tierTwoPercent !== undefined)
+      update.tierTwoPercent = parseInt(String(tierTwoPercent), 10);
     if (launchDate !== undefined)
       update.launchDate = launchDate ? new Date(launchDate) : null;
     if (allowRegistration !== undefined)
@@ -128,6 +156,8 @@ export async function PATCH(request: NextRequest) {
         earlyAccessLimit: settings.earlyAccessLimit,
         tenPercentLimit: settings.tenPercentLimit,
         fivePercentLimit: settings.fivePercentLimit,
+        tierOnePercent: settings.tierOnePercent,
+        tierTwoPercent: settings.tierTwoPercent,
         launchDate: settings.launchDate,
         allowRegistration: settings.allowRegistration,
       },

@@ -73,8 +73,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const discountPercentage: 10 | 5 =
-      membershipNumber <= settings.tenPercentLimit ? 10 : 5;
+    const tierOnePercent =
+      typeof settings.tierOnePercent === "number" ? settings.tierOnePercent : 10;
+    const tierTwoPercent =
+      typeof settings.tierTwoPercent === "number" ? settings.tierTwoPercent : 5;
+
+    const discountPercentage =
+      membershipNumber <= settings.tenPercentLimit
+        ? tierOnePercent
+        : tierTwoPercent;
 
     const qrToken = crypto.randomBytes(32).toString("hex");
 

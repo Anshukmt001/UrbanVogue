@@ -3,7 +3,7 @@ export interface MockMember {
   name: string;
   mobile: string;
   email?: string;
-  discountPercentage: 5 | 10;
+  discountPercentage: number;
   membershipTier: "first100" | "next50";
   status: "active" | "revoked";
   discountRedeemed: boolean;
@@ -19,6 +19,8 @@ export const MOCK_CAMPAIGN = {
   fivePercentMembers: 0,
   tenPercentLimit: 50,
   fivePercentLimit: 50,
+  tierOnePercent: 10,
+  tierTwoPercent: 5,
   redeemed: 0,
   unredeemed: 0,
   status: "open" as const,

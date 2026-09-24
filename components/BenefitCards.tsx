@@ -1,8 +1,12 @@
+"use client";
+
+import { usePublicSettings } from "@/lib/public-settings";
+
 interface BenefitCardsProps {
   items?: { number: string; title: string; body: string }[];
 }
 
-const DEFAULTS = [
+const BASE_ITEMS = [
   {
     number: "01",
     title: "Early Access",
@@ -11,7 +15,7 @@ const DEFAULTS = [
   {
     number: "02",
     title: "Exclusive Discount",
-    body: "10% off for the first 50, 5% for the next 50.",
+    body: "",
   },
   {
     number: "03",
@@ -20,7 +24,20 @@ const DEFAULTS = [
   },
 ];
 
-export function BenefitCards({ items = DEFAULTS }: BenefitCardsProps) {
+export function BenefitCards({ items }: BenefitCardsProps) {
+  const settings = usePublicSettings();
+
+  const list =
+    items ??
+    BASE_ITEMS.map((item) =>
+      item.number === "02"
+        ? {
+            ...item,
+            body: `${settings.tierOnePercent}% off for the first ${settings.tenPercentLimit}, ${settings.tierTwoPercent}% for the next ${settings.fivePercentLimit}.`,
+          }
+        : item
+    );
+
   return (
     <section className="bg-card text-foreground py-24 sm:py-32">
       <div className="mx-auto max-w-[1400px] px-6">
@@ -42,7 +59,7 @@ export function BenefitCards({ items = DEFAULTS }: BenefitCardsProps) {
         </div>
 
         <div className="grid md:grid-cols-3 gap-4">
-          {items.map((item) => (
+          {list.map((item) => (
             <div
               key={item.number}
               className="group relative border border-border bg-background p-10 transition-colors duration-300 hover:border-silver/40"

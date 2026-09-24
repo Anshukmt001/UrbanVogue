@@ -17,6 +17,8 @@ export default function AdminSettingsPage() {
   const [maxMembers, setMaxMembers] = useState(String(MOCK_CAMPAIGN.total));
   const [tenPctLimit, setTenPctLimit] = useState(String(MOCK_CAMPAIGN.tenPercentLimit));
   const [fivePctLimit, setFivePctLimit] = useState(String(MOCK_CAMPAIGN.fivePercentLimit));
+  const [tierOnePct, setTierOnePct] = useState(String(MOCK_CAMPAIGN.tierOnePercent));
+  const [tierTwoPct, setTierTwoPct] = useState(String(MOCK_CAMPAIGN.tierTwoPercent));
   const [launchDate, setLaunchDate] = useState(MOCK_CAMPAIGN.launchDate);
   const [saved, setSaved] = useState(false);
   const [resetOpen, setResetOpen] = useState(false);
@@ -43,6 +45,8 @@ export default function AdminSettingsPage() {
         setMaxMembers(String(s.earlyAccessLimit));
         setTenPctLimit(String(s.tenPercentLimit));
         setFivePctLimit(String(s.fivePercentLimit));
+        setTierOnePct(String(s.tierOnePercent ?? 10));
+        setTierTwoPct(String(s.tierTwoPercent ?? 5));
         if (s.launchDate) setLaunchDate(toDateInput(String(s.launchDate)));
       })
       .catch(() => {
@@ -63,6 +67,8 @@ export default function AdminSettingsPage() {
           earlyAccessLimit: parseInt(maxMembers, 10),
           tenPercentLimit: parseInt(tenPctLimit, 10),
           fivePercentLimit: parseInt(fivePctLimit, 10),
+          tierOnePercent: parseInt(tierOnePct, 10),
+          tierTwoPercent: parseInt(tierTwoPct, 10),
           launchDate: launchDate || null,
           allowRegistration,
         }),
@@ -181,14 +187,23 @@ export default function AdminSettingsPage() {
 
       {/* Limits */}
       <div className="border border-border bg-card p-6 sm:p-8 space-y-6">
-        <p className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
-          Campaign Limits
-        </p>
+        <div>
+          <p className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
+            Campaign Limits &amp; Discounts
+          </p>
+          <p className="mt-2 text-xs text-muted-foreground leading-relaxed">
+            Tier 1 applies to the first members in line, tier 2 to everyone
+            after. Editing a discount here updates what new members are
+            awarded.
+          </p>
+        </div>
         <div className="grid sm:grid-cols-3 gap-6">
           {[
-            { label: "Max Members", value: maxMembers, set: setMaxMembers },
-            { label: "10% Tier Limit", value: tenPctLimit, set: setTenPctLimit },
-            { label: "5% Tier Limit", value: fivePctLimit, set: setFivePctLimit },
+            { label: "Max Members", value: maxMembers, set: setMaxMembers, hint: "passes" },
+            { label: "Tier 1 Discount %", value: tierOnePct, set: setTierOnePct, hint: "0 – 100" },
+            { label: "Tier 1 Limit", value: tenPctLimit, set: setTenPctLimit, hint: "first members" },
+            { label: "Tier 2 Discount %", value: tierTwoPct, set: setTierTwoPct, hint: "0 – 100" },
+            { label: "Tier 2 Limit", value: fivePctLimit, set: setFivePctLimit, hint: "next members" },
           ].map((field) => (
             <div key={field.label}>
               <label className="block font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground mb-2">
@@ -200,6 +215,9 @@ export default function AdminSettingsPage() {
                 onChange={(e) => field.set(e.target.value)}
                 className="w-full bg-transparent border-b border-border px-0 py-2.5 font-headline text-2xl text-bone focus:outline-none focus:border-primary transition-colors"
               />
+              <p className="mt-1.5 font-mono text-[7px] tracking-[0.22em] uppercase text-muted-foreground/60">
+                {field.hint}
+              </p>
             </div>
           ))}
         </div>
@@ -230,9 +248,9 @@ export default function AdminSettingsPage() {
           Reset Everything <span className="font-editorial italic text-destructive normal-case font-medium">to Zero</span>
         </h2>
         <p className="mt-3 text-sm text-muted-foreground max-w-xl leading-relaxed">
-          Permanently clears all members, redemptions, registration stats and
-          stored pass drafts, and restores campaign limits to their defaults.
-          This cannot be undone.
+          Permanently clears all members, redemptions, coupons, registration
+          stats and stored pass drafts, and restores campaign limits and tier
+          discounts to their defaults. This cannot be undone.
         </p>
         <Button
           variant="danger"
@@ -269,8 +287,8 @@ export default function AdminSettingsPage() {
         title="Reset everything?"
       >
         <p className="text-sm text-muted-foreground leading-relaxed">
-          This wipes all members, redemptions and stats to zero and restores the
-          campaign to its fresh state. There is no undo.
+          This wipes all members, redemptions, coupons and stats to zero and
+          restores the campaign to its fresh state. There is no undo.
         </p>
         <div className="mt-4 flex items-center gap-2 font-mono text-[8px] tracking-[0.28em] uppercase text-destructive">
           <AlertTriangle className="h-4 w-4" />

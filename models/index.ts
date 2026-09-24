@@ -11,3 +11,8 @@ export {
   type ICounter,
   getNextMembershipNumber,
 } from "./Counter";
+export {
+  default as Coupon,
+  type ICoupon,
+  type CouponDiscountType,
+} from "./Coupon";

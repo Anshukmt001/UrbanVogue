@@ -31,8 +31,9 @@ export async function GET(request: NextRequest) {
       filter.$or = or;
     }
 
-    if (discount === "10" || discount === "5") {
-      filter.discountPercentage = parseInt(discount, 10);
+    const discountNum = parseInt(discount, 10);
+    if (discount && !isNaN(discountNum) && discountNum >= 0 && discountNum <= 100) {
+      filter.discountPercentage = discountNum;
     }
 
     if (status === "active" || status === "revoked") {

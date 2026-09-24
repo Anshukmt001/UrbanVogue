@@ -3,7 +3,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 export interface IRedemption extends Document {
   memberId: mongoose.Types.ObjectId;
   membershipNumber: number;
-  discountPercentage: 10 | 5;
+  discountPercentage: number;
   redeemedBy: string;
   redeemedAt: Date;
 }
@@ -22,7 +22,8 @@ const redemptionSchema = new Schema<IRedemption>(
     discountPercentage: {
       type: Number,
       required: true,
-      enum: [10, 5],
+      min: 0,
+      max: 100,
     },
     redeemedBy: {
       type: String,
