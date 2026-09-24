@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, Users, ScanLine, Settings, LogOut, ArrowUpRight, Ticket } from "lucide-react";
+import { LayoutDashboard, Users, ScanLine, Settings, LogOut, ArrowUpRight, Ticket, Mail } from "lucide-react";
 import { MOCK_ADMIN } from "@/lib/mock-data";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/members", label: "Members", icon: Users },
   { href: "/admin/coupons", label: "Coupons", icon: Ticket },
+  { href: "/admin/email", label: "Email", icon: Mail },
   { href: "/admin/scanner", label: "Scanner", icon: ScanLine },
   { href: "/admin/settings", label: "Settings", icon: Settings },
 ];

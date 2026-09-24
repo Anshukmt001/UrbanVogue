@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Member, getOrCreateSettings, getNextMembershipNumber } from "@/models";
 import { registerMemberSchema, normalizeMobile } from "@/lib/validations/member";
+import { sendAndRecordWelcomeEmail } from "@/lib/email/member-welcome";
 
 export async function POST(request: NextRequest) {
   try {
@@ -106,7 +107,39 @@ export async function POST(request: NextRequest) {
       status: "active",
       discountRedeemed: false,
       redeemedAt: null,
+      welcomeEmailStatus: normalizedEmail ? "pending" : "skipped",
+      welcomeEmailSent: false,
+      welcomeEmailSentAt: null,
+      welcomeEmailError: null,
     });
+
+    if (normalizedEmail) {
+      try {
+        await sendAndRecordWelcomeEmail({
+          _id: member._id,
+          membershipNumber: member.membershipNumber,
+          name: member.name,
+          email: member.email,
+          discountPercentage: member.discountPercentage,
+        });
+      } catch {
+        try {
+          await Member.updateOne(
+            { _id: member._id },
+            {
+              $set: {
+                welcomeEmailStatus: "failed",
+                welcomeEmailSent: false,
+                welcomeEmailSentAt: null,
+                welcomeEmailError: "send_failed: unexpected error",
+              },
+            }
+          );
+        } catch {
+          // registration must not fail because of email bookkeeping
+        }
+      }
+    }
 
     return NextResponse.json(
       {

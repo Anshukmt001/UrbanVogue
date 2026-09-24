@@ -10,6 +10,10 @@ export interface IMember extends Document {
   status: "active" | "revoked";
   discountRedeemed: boolean;
   redeemedAt: Date | null;
+  welcomeEmailStatus: "pending" | "sent" | "failed" | "skipped";
+  welcomeEmailSent: boolean;
+  welcomeEmailSentAt: Date | null;
+  welcomeEmailError: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -67,6 +71,25 @@ const memberSchema = new Schema<IMember>(
       type: Date,
       default: null,
     },
+    welcomeEmailStatus: {
+      type: String,
+      required: true,
+      enum: ["pending", "sent", "failed", "skipped"],
+      default: "pending",
+    },
+    welcomeEmailSent: {
+      type: Boolean,
+      required: true,
+      default: false,
+    },
+    welcomeEmailSentAt: {
+      type: Date,
+      default: null,
+    },
+    welcomeEmailError: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -76,6 +99,7 @@ const memberSchema = new Schema<IMember>(
 memberSchema.index({ status: 1 });
 memberSchema.index({ discountRedeemed: 1 });
 memberSchema.index({ createdAt: 1 });
+memberSchema.index({ welcomeEmailStatus: 1 });
 
 const Member: Model<IMember> =
   mongoose.models.Member || mongoose.model<IMember>("Member", memberSchema);
