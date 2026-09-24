@@ -7,14 +7,25 @@ export async function downloadMembershipPass(
   const node =
     container.querySelector<HTMLElement>("[data-pass-card]") ?? container;
 
+  const width = node.offsetWidth;
+  const height = node.offsetHeight;
+  if (!width || !height) {
+    throw new Error("Card has no size");
+  }
+
   const dataUrl = await toPng(node, {
-    pixelRatio: 3,
+    pixelRatio: 2,
     backgroundColor: "#141414",
-    width: node.offsetWidth,
-    height: node.offsetHeight,
+    width,
+    height,
     style: {
       transform: "none",
       margin: "0",
+      boxSizing: "border-box",
+    },
+    filter: (target) => {
+      if (!(target instanceof Element)) return true;
+      return !target.closest("[data-html2canvas-ignore]");
     },
   });
 

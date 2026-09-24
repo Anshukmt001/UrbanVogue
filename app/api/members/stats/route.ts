@@ -60,6 +60,11 @@ export async function GET() {
         remainingMembers: Math.max(0, limits.earlyAccessLimit - stats.total),
         redeemedMembers: stats.redeemed,
         unredeemedMembers: stats.total - stats.redeemed,
+        campaignStatus: settings?.campaignStatus ?? "open",
+        allowRegistration: settings?.allowRegistration ?? true,
+        earlyAccessOpen:
+          (settings?.campaignStatus ?? "open") === "open" &&
+          (settings?.allowRegistration ?? true),
         ...limits,
       },
     });

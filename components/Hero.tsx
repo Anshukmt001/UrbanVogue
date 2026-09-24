@@ -1,11 +1,30 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { InstagramIcon } from "@/components/instagram-icon";
 
 export function Hero() {
+  const [earlyAccessOpen, setEarlyAccessOpen] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/members/stats")
+      .then((r) => r.json())
+      .then((json) => {
+        if (!active || !json?.success || !json.data) return;
+        setEarlyAccessOpen(json.data.earlyAccessOpen !== false);
+      })
+      .catch(() => {
+        // keep open on error so join remains reachable
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <section className="relative min-h-svh flex flex-col items-center justify-center text-center bg-background text-foreground overflow-hidden px-6">
       {/* Animated abstract backdrop */}
@@ -83,13 +102,19 @@ export function Hero() {
           transition={{ duration: 0.6, delay: 0.7 }}
           className="mt-10 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto"
         >
-          <Link
-            href="/join"
-            className="clip-notch group inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-bone text-background px-9 py-4 text-sm font-bold tracking-[0.22em] uppercase hover:bg-[#c9a86a] transition-all duration-300"
-          >
-            Join Early Access
-            <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
+          {earlyAccessOpen ? (
+            <Link
+              href="/join"
+              className="clip-notch group inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-bone text-background px-9 py-4 text-sm font-bold tracking-[0.22em] uppercase hover:bg-[#c9a86a] transition-all duration-300"
+            >
+              Join Early Access
+              <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          ) : (
+            <span className="clip-notch inline-flex items-center justify-center gap-2 w-full sm:w-auto border border-border bg-secondary/40 px-9 py-4 text-sm font-bold tracking-[0.22em] uppercase text-muted-foreground">
+              Closed
+            </span>
+          )}
           <a
             href="https://www.instagram.com/urban_vouge_kct"
             target="_blank"

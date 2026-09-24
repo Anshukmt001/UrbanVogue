@@ -22,7 +22,7 @@ function getTiltServerSnapshot() {
 
 function BankChip() {
   return (
-    <div className="h-8 sm:h-9 w-11 sm:w-12 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-[#ecd49a] via-[#c9a86a] to-[#8a703c] p-[2px] shadow-[inset_0_1px_2px_rgba(255,255,255,0.5)]">
+    <div className="h-7 sm:h-9 w-10 sm:w-12 shrink-0 rounded-md overflow-hidden bg-gradient-to-br from-[#ecd49a] via-[#c9a86a] to-[#8a703c] p-[2px] shadow-[inset_0_1px_2px_rgba(255,255,255,0.5)]">
       <div className="h-full w-full rounded-[5px] border border-black/15 flex bg-gradient-to-br from-[#e2c57f] to-[#b99a54]">
         <span className="flex-1 border-r border-black/20" />
         <span className="flex-1 border-r border-black/20" />
@@ -45,6 +45,12 @@ function ContactlessIcon() {
 function cardNumberFor(membershipNumber: number): string {
   const last = String(membershipNumber).padStart(4, "0");
   return `0375 2602 2026 ${last}`;
+}
+
+function firstNameOf(fullName: string): string {
+  const trimmed = fullName.trim();
+  if (!trimmed) return "";
+  return trimmed.split(/\s+/)[0];
 }
 
 export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }) {
@@ -75,6 +81,7 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
   }
 
   const qrValue = `https://urbanvogue.vercel.app/verify/uv-${member.membershipNumber}`;
+  const displayName = firstNameOf(member.name);
 
   return (
     <motion.div
@@ -108,11 +115,20 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
         <div className="absolute inset-0 grid-pattern opacity-[0.35]" aria-hidden />
         <div className="absolute -right-16 -bottom-24 h-56 w-56 rounded-full border border-[#c9a86a]/20" aria-hidden />
 
+        {/* QR — ~1/4 of card width, pinned bottom-right so it never overflows */}
+        <div className="absolute right-[4%] bottom-[8%] w-[26%] max-w-[132px] z-10">
+          <div className="bg-white p-[4%]">
+            <QRCodeSVG
+              value={qrValue}
+              size={160}
+              level="M"
+              className="block h-auto w-full"
+            />
+          </div>
+        </div>
+
         {/* Content */}
-        <div
-          className="relative flex h-full flex-col justify-between p-3 sm:p-5 md:p-6"
-          style={allowTilt ? { transform: "translateZ(24px)" } : undefined}
-        >
+        <div className="relative flex h-full flex-col justify-between p-3 sm:p-5 md:p-6 pb-[calc(8%+26%*1.586+8%)] sm:pb-[calc(6%+26%*1.586*0.62)]">
           {/* Brand row */}
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
@@ -137,7 +153,7 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
           </div>
 
           {/* Chip + contactless */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-[30%] sm:pr-[28%]">
             <BankChip />
             <div className="flex items-center gap-2">
               <span className="font-mono text-[6px] sm:text-[7px] tracking-[0.3em] uppercase text-muted-foreground">
@@ -148,54 +164,24 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
           </div>
 
           {/* Card number */}
-          <div>
-            <p className="font-mono tracking-[0.12em] sm:tracking-[0.16em] text-bone text-[clamp(0.68rem,3.4vw,1.125rem)] leading-none">
+          <div className="pr-[30%] sm:pr-[28%]">
+            <p className="font-mono tracking-[0.12em] sm:tracking-[0.16em] text-bone text-[clamp(0.62rem,2.8vw,1rem)] leading-none">
               {cardNumberFor(member.membershipNumber)}
             </p>
           </div>
 
-          {/* Cardholder + QR */}
-          <div className="flex items-end justify-between gap-2 sm:gap-3 min-w-0">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-end gap-3 sm:gap-6">
-                <div className="min-w-0">
-                  <p className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1 sm:mb-1.5">
-                    Cardholder
-                  </p>
-                  <p className="truncate font-headline uppercase tracking-wide text-foreground text-sm sm:text-lg leading-none">
-                    {member.name}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1 sm:mb-1.5">
-                    Valid Thru
-                  </p>
-                  <p className="font-mono text-[10px] sm:text-sm text-foreground leading-none">
-                    12/26
-                  </p>
-                </div>
-              </div>
-              <p className="hidden sm:block mt-3 font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
-                Scan the QR at the launch to verify
-              </p>
-            </div>
-            <div className="shrink-0 flex flex-col items-end gap-1">
-              <span className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground">
-                Verify
-              </span>
-              <div className="bg-white p-1 sm:p-2">
-                <QRCodeSVG
-                  value={qrValue}
-                  size={160}
-                  level="M"
-                  className="h-[clamp(88px,26vw,160px)] w-[clamp(88px,26vw,160px)]"
-                />
-              </div>
-            </div>
+          {/* First name (no last name) */}
+          <div className="min-w-0 pr-[30%] sm:pr-[28%]">
+            <p className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1 sm:mb-1.5">
+              Cardholder
+            </p>
+            <p className="truncate font-headline uppercase tracking-wide text-foreground text-sm sm:text-lg leading-none">
+              {displayName}
+            </p>
           </div>
 
           {/* Footer strip */}
-          <div className="hidden sm:flex items-center justify-between">
+          <div className="hidden sm:flex items-center justify-between pr-[30%]">
             <p className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
               Member {String(member.membershipNumber).padStart(3, "0")} · {member.membershipTier === "first100" ? "First 50" : "Next 50"}
             </p>

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { ScanLine, Camera, CameraOff, CheckCircle2, XCircle, Ban, SearchX, SwitchCamera } from "lucide-react";
-import { Html5Qrcode } from "html5-qrcode";
+import { Html5Qrcode, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import { Badge } from "@/components/ui/Badge";
 
 interface ScannedMember {
@@ -46,6 +46,12 @@ export function QRScanner() {
     };
   }, []);
 
+  function vibrate(pattern: number | number[]) {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+      navigator.vibrate(pattern);
+    }
+  }
+
   function parseNumber(value: string): number | null {
     const match = value.match(/uv-(\d+)/i) || value.match(/(\d+)/);
     if (!match) return null;
@@ -61,6 +67,7 @@ export function QRScanner() {
       const res = await fetch(`/api/members/${membershipNumber}`);
       if (res.ok) {
         const json = await res.json();
+        vibrate([80, 40, 80]);
         setOutcome({
           kind: "valid",
           member: {
@@ -70,13 +77,17 @@ export function QRScanner() {
           },
         });
       } else if (res.status === 403) {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({ kind: "revoked", member: null });
       } else if (res.status === 404) {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({ kind: "not_found" });
       } else {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({ kind: "error", message: "Something went wrong. Try again." });
       }
     } catch {
+      vibrate([50, 40, 50, 40, 50]);
       setOutcome({ kind: "error", message: "Could not reach the server. Try again." });
     } finally {
       setScanning(false);
@@ -86,6 +97,7 @@ export function QRScanner() {
   async function handleScan(value: string) {
     const membershipNumber = parseNumber(value);
     if (!membershipNumber) {
+      vibrate([50, 40, 50, 40, 50]);
       setOutcome({
         kind: "error",
         message: "This QR is not an Urban Vogue member pass. Scan the pass shown on the membership page.",
@@ -101,12 +113,29 @@ export function QRScanner() {
   ) {
     await scanner.start(
       constraints,
-      { fps: 10, qrbox: { width: 260, height: 260 } },
+      {
+        fps: 30,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const size = Math.max(
+            160,
+            Math.min(Math.floor(Math.min(viewfinderWidth, viewfinderHeight) * 0.7), 240)
+          );
+          return { width: size, height: size };
+        },
+        disableFlip: true,
+        videoConstraints: {
+          ...(constraints as MediaTrackConstraints),
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          frameRate: { ideal: 30 },
+        },
+      },
       async (decodedText) => {
+        vibrate([40, 30, 40]);
         const s = scannerRef.current;
         scannerRef.current = null;
         if (s) {
-          await s.stop().catch(() => {});
+          s.stop().catch(() => {});
         }
         setCamera({ kind: "idle" });
         await handleScan(decodedText);
@@ -134,7 +163,7 @@ export function QRScanner() {
         { once: true }
       );
       video.play().catch(() => finish(false));
-      setTimeout(() => finish(video.videoWidth > 0), 2500);
+      setTimeout(() => finish(video.videoWidth > 0), 1500);
     });
   }
 
@@ -173,7 +202,11 @@ export function QRScanner() {
     for (const constraints of attemptOrder) {
       let scanner: Html5Qrcode;
       try {
-        scanner = new Html5Qrcode(readerId, false);
+        scanner = new Html5Qrcode(readerId, {
+          formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE],
+          useBarCodeDetectorIfSupported: true,
+          verbose: false,
+        });
       } catch {
         break;
       }
@@ -271,19 +304,24 @@ export function QRScanner() {
       });
       const json = await res.json().catch(() => null);
       if (res.ok && json?.success) {
+        vibrate([80, 40, 80]);
         setOutcome({ kind: "redeemed", member, message: "Discount applied." });
       } else if (res.status === 403) {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({ kind: "revoked", member });
       } else if (res.status === 409) {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({
           kind: "redeemed",
           member,
           message: "This discount has already been redeemed.",
         });
       } else {
+        vibrate([50, 40, 50, 40, 50]);
         setOutcome({ kind: "error", message: "Could not redeem. Try again." });
       }
     } catch {
+      vibrate([50, 40, 50, 40, 50]);
       setOutcome({ kind: "error", message: "Could not reach the server. Try again." });
     } finally {
       setRedeeming(false);
