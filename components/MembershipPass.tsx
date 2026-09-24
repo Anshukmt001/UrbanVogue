@@ -115,8 +115,8 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
         <div className="absolute inset-0 grid-pattern opacity-[0.35]" aria-hidden />
         <div className="absolute -right-16 -bottom-24 h-56 w-56 rounded-full border border-[#c9a86a]/20" aria-hidden />
 
-        {/* QR — ~1/4 of card width, pinned bottom-right so it never overflows */}
-        <div className="absolute right-[4%] bottom-[8%] w-[26%] max-w-[132px] z-10">
+        {/* QR — ~1/4 of card, bottom-right */}
+        <div className="absolute right-[4%] bottom-[6%] w-[24%] max-w-[120px] z-10">
           <div className="bg-white p-[4%]">
             <QRCodeSVG
               value={qrValue}
@@ -127,10 +127,10 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
           </div>
         </div>
 
-        {/* Content */}
-        <div className="relative flex h-full flex-col justify-between p-3 sm:p-5 md:p-6 pb-[calc(8%+26%*1.586+8%)] sm:pb-[calc(6%+26%*1.586*0.62)]">
+        {/* Content — full card, nothing clipped */}
+        <div className="relative flex h-full flex-col p-3 sm:p-5 md:p-6">
           {/* Brand row */}
-          <div className="flex items-start justify-between gap-2">
+          <div className="flex items-start justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2 sm:gap-2.5 min-w-0">
               <span className="h-2.5 w-2.5 sm:h-3 sm:w-3 bg-primary shrink-0" />
               <div className="min-w-0">
@@ -152,8 +152,8 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
             </div>
           </div>
 
-          {/* Chip + contactless */}
-          <div className="flex items-center justify-between pr-[30%] sm:pr-[28%]">
+          {/* Chip + contactless — below brand, left side */}
+          <div className="mt-3 sm:mt-5 flex items-center justify-between pr-[32%] shrink-0">
             <BankChip />
             <div className="flex items-center gap-2">
               <span className="font-mono text-[6px] sm:text-[7px] tracking-[0.3em] uppercase text-muted-foreground">
@@ -164,29 +164,27 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
           </div>
 
           {/* Card number */}
-          <div className="pr-[30%] sm:pr-[28%]">
+          <div className="mt-2.5 sm:mt-4 pr-[32%] shrink-0">
             <p className="font-mono tracking-[0.12em] sm:tracking-[0.16em] text-bone text-[clamp(0.62rem,2.8vw,1rem)] leading-none">
               {cardNumberFor(member.membershipNumber)}
             </p>
           </div>
 
-          {/* First name (no last name) */}
-          <div className="min-w-0 pr-[30%] sm:pr-[28%]">
+          {/* Spacer pushes bottom block down */}
+          <div className="flex-1 min-h-0" />
+
+          {/* Bottom: name + member id at bottom-left, clear of QR */}
+          <div className="shrink-0 pr-[30%] sm:pr-[28%] min-w-0">
             <p className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1 sm:mb-1.5">
               Cardholder
             </p>
             <p className="truncate font-headline uppercase tracking-wide text-foreground text-sm sm:text-lg leading-none">
               {displayName}
             </p>
-          </div>
-
-          {/* Footer strip */}
-          <div className="hidden sm:flex items-center justify-between pr-[30%]">
-            <p className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
-              Member {String(member.membershipNumber).padStart(3, "0")} · {member.membershipTier === "first100" ? "First 50" : "Next 50"}
-            </p>
-            <p className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
-              Early Access 2026
+            <p className="mt-1.5 sm:mt-2 font-mono text-[6px] sm:text-[7px] tracking-[0.28em] uppercase text-muted-foreground">
+              Member {String(member.membershipNumber).padStart(3, "0")}
+              {" · "}
+              {member.membershipTier === "first100" ? "First 50" : "Next 50"}
             </p>
           </div>
         </div>

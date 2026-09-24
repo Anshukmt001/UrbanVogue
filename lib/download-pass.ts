@@ -21,7 +21,10 @@ export async function downloadMembershipPass(
     style: {
       transform: "none",
       margin: "0",
+      width: `${width}px`,
+      height: `${height}px`,
       boxSizing: "border-box",
+      overflow: "hidden",
     },
     filter: (target) => {
       if (!(target instanceof Element)) return true;
