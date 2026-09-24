@@ -196,6 +196,9 @@ body {
   width: 100% !important;
   height: 100% !important;
 }
+#qr-reader video[data-facing="user"] {
+  transform: scaleX(-1);
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,

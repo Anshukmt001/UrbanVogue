@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { ScanLine, Camera, CameraOff, CheckCircle2, XCircle, Ban, SearchX } from "lucide-react";
+import { ScanLine, Camera, CameraOff, CheckCircle2, XCircle, Ban, SearchX, SwitchCamera } from "lucide-react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Badge } from "@/components/ui/Badge";
 
@@ -25,12 +25,15 @@ type CameraState =
   | { kind: "active" }
   | { kind: "denied"; message: string };
 
+type FacingMode = "environment" | "user";
+
 export function QRScanner() {
   const [input, setInput] = useState("");
   const [scanning, setScanning] = useState(false);
   const [redeeming, setRedeeming] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [camera, setCamera] = useState<CameraState>({ kind: "idle" });
+  const [facingMode, setFacingMode] = useState<FacingMode>("environment");
   const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
@@ -135,27 +138,37 @@ export function QRScanner() {
     });
   }
 
-  async function startCamera() {
+  async function teardownScanner() {
+    const s = scannerRef.current;
+    scannerRef.current = null;
+    if (s) {
+      try {
+        await s.stop();
+      } catch {}
+      try {
+        s.clear();
+      } catch {}
+    }
+    const video = document.querySelector<HTMLVideoElement>("#qr-reader video");
+    if (video) video.removeAttribute("data-facing");
+  }
+
+  async function startCamera(preferred?: FacingMode) {
+    const facing = preferred ?? facingMode;
     setCamera({ kind: "starting" });
     const readerId = "qr-reader";
 
-    if (scannerRef.current) {
-      try {
-        await scannerRef.current.stop();
-      } catch {}
-      try {
-        scannerRef.current.clear();
-      } catch {}
-      scannerRef.current = null;
-    }
+    await teardownScanner();
 
-    const attemptOrder: MediaTrackConstraints[] = [
-      { facingMode: { ideal: "environment" } },
-      { facingMode: "user" },
+    const other: FacingMode = facing === "environment" ? "user" : "environment";
+    const attemptOrder: Array<MediaTrackConstraints | string> = [
+      { facingMode: facing },
+      { facingMode: other },
       {},
     ];
 
     let lastErr: unknown = null;
+    let openedFacing: FacingMode = facing;
 
     for (const constraints of attemptOrder) {
       let scanner: Html5Qrcode;
@@ -166,12 +179,38 @@ export function QRScanner() {
       }
       scannerRef.current = scanner;
       try {
-        await startScanner(scanner, constraints);
+        await startScanner(
+          scanner,
+          constraints as MediaTrackConstraints
+        );
         const hasFrame = await waitForVideoFrame(readerId);
         if (!hasFrame) {
           throw Object.assign(new Error("No video frames"), {
             name: "NoFrameError",
           });
+        }
+        try {
+          const settings = scanner.getRunningTrackSettings();
+          if (settings.facingMode === "user" || settings.facingMode === "environment") {
+            openedFacing = settings.facingMode;
+          } else if (
+            typeof constraints === "object" &&
+            constraints.facingMode
+          ) {
+            const fm = constraints.facingMode;
+            if (typeof fm === "string") {
+              openedFacing = fm as FacingMode;
+            }
+          }
+        } catch {
+          // keep preferred facing
+        }
+        setFacingMode(openedFacing);
+        const video = document.querySelector<HTMLVideoElement>(
+          `#${readerId} video`
+        );
+        if (video) {
+          video.setAttribute("data-facing", openedFacing);
         }
         setCamera({ kind: "active" });
         return;
@@ -210,12 +249,15 @@ export function QRScanner() {
     setCamera({ kind: "denied", message });
   }
 
+  async function switchCamera() {
+    if (camera.kind !== "active") return;
+    const next: FacingMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(next);
+    await startCamera(next);
+  }
+
   async function stopCamera() {
-    const s = scannerRef.current;
-    scannerRef.current = null;
-    if (s) {
-      await s.stop().catch(() => {});
-    }
+    await teardownScanner();
     setCamera({ kind: "idle" });
   }
 
@@ -305,7 +347,9 @@ export function QRScanner() {
           <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
             <p className="font-mono text-[8px] tracking-[0.3em] uppercase text-muted-foreground">
               {cameraBusy
-                ? "Starting camera…"
+                ? facingMode === "environment"
+                  ? "Starting back camera…"
+                  : "Starting front camera…"
                 : cameraActive
                 ? "Align the QR code inside the frame"
                 : camera.kind === "denied"
@@ -313,11 +357,32 @@ export function QRScanner() {
                 : "Press Start Camera"}
             </p>
           </div>
+
+          {cameraActive && (
+            <button
+              type="button"
+              onClick={switchCamera}
+              disabled={cameraBusy}
+              aria-label={
+                facingMode === "environment"
+                  ? "Switch to front camera"
+                  : "Switch to back camera"
+              }
+              title={
+                facingMode === "environment"
+                  ? "Switch to front camera"
+                  : "Switch to back camera"
+              }
+              className="absolute top-3 right-3 z-10 flex h-11 w-11 items-center justify-center border border-border bg-background/80 text-foreground backdrop-blur-sm hover:border-primary hover:text-primary transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <SwitchCamera className="h-5 w-5" />
+            </button>
+          )}
         </div>
 
         {camera.kind !== "active" && camera.kind !== "starting" && (
           <button
-            onClick={startCamera}
+            onClick={() => startCamera()}
             disabled={cameraBusy}
             className="clip-notch mt-6 flex w-full items-center justify-center gap-2 bg-bone px-6 py-4 text-[10px] font-bold tracking-[0.22em] uppercase text-background hover:bg-[#c9a86a] transition-colors disabled:opacity-60 cursor-pointer"
           >
