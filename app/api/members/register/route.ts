@@ -52,13 +52,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingMember = await Member.findOne({ mobile: normalizedMobile });
+    const duplicateQuery: Record<string, string>[] = [
+      { mobile: normalizedMobile },
+    ];
+    if (normalizedEmail) {
+      duplicateQuery.push({ email: normalizedEmail.toLowerCase() });
+    }
+
+    const existingMember = await Member.findOne({ $or: duplicateQuery });
     if (existingMember) {
       return NextResponse.json(
         {
           success: false,
-          error: "This mobile number is already registered",
-          data: { membershipNumber: existingMember.membershipNumber },
+          error: "ALREADY_REGISTERED",
+          data: {
+            membershipNumber: existingMember.membershipNumber,
+            field:
+              existingMember.mobile === normalizedMobile ? "mobile" : "email",
+          },
         },
         { status: 409 }
       );
@@ -115,11 +126,18 @@ export async function POST(request: NextRequest) {
       "code" in error &&
       error.code === 11000
     ) {
+      const keyPattern =
+        "keyPattern" in error && error.keyPattern
+          ? (error.keyPattern as Record<string, unknown>)
+          : null;
       return NextResponse.json(
         {
           success: false,
-          error: "This mobile number is already registered",
-          data: null,
+          error: "ALREADY_REGISTERED",
+          data: {
+            membershipNumber: null,
+            field: keyPattern && "email" in keyPattern ? "email" : "mobile",
+          },
         },
         { status: 409 }
       );

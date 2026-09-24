@@ -61,7 +61,7 @@ export default function JoinPage() {
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
-        if (json.error === "This mobile number is already registered") {
+        if (json.error === "ALREADY_REGISTERED") {
           setSubmitting(false);
           setAlreadyRegistered(
             typeof json.data?.membershipNumber === "number"
@@ -94,8 +94,8 @@ export default function JoinPage() {
         return "Early access is sold out.";
       case "REGISTRATION_CURRENTLY_PAUSED":
         return "Registration is currently paused.";
-      case "This mobile number is already registered":
-        return "This mobile number is already registered.";
+      case "ALREADY_REGISTERED":
+        return "You have already registered.";
       case "Enter a valid 10-digit Indian mobile number":
         return "Enter a valid 10-digit mobile number.";
       default:
@@ -302,7 +302,7 @@ export default function JoinPage() {
       <Modal
         open={alreadyRegistered !== null}
         onClose={() => setAlreadyRegistered(null)}
-        title="Already Claimed"
+        title="Already Registered"
         actions={
           <>
             <button
@@ -329,10 +329,11 @@ export default function JoinPage() {
             <Check className="h-5 w-5 text-primary" />
           </span>
           <p className="font-headline text-2xl uppercase tracking-tight">
-            You&apos;re already in.
+            You have already registered.
           </p>
           <p className="text-sm text-muted-foreground leading-relaxed">
-            This mobile number has already claimed an early-access pass.
+            This mobile number or email has already claimed an early-access
+            pass.
             {alreadyRegistered !== null && alreadyRegistered > 0 && (
               <>
                 {" "}

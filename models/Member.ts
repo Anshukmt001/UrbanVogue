@@ -35,6 +35,8 @@ const memberSchema = new Schema<IMember>(
     email: {
       type: String,
       required: false,
+      unique: true,
+      sparse: true,
       trim: true,
       lowercase: true,
       default: undefined,
