@@ -64,7 +64,7 @@ export default function AdminMemberDetailPage({
         width: 800,
         height: 504,
         pixelRatio: 3,
-        backgroundColor: "#0a0a0a",
+        backgroundColor: "#141414",
       });
       const link = document.createElement("a");
       link.download = `urban-vogue-member-${member.membershipNumber}.png`;

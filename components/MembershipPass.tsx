@@ -129,23 +129,43 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
             </p>
           </div>
 
-          {/* Cardholder row */}
-          <div className="flex items-end justify-between gap-4">
+          {/* Cardholder + QR */}
+          <div className="flex items-end justify-between gap-3">
             <div className="min-w-0">
-              <p className="font-mono text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1.5">
-                Cardholder
-              </p>
-              <p className="truncate font-headline uppercase tracking-wide text-foreground text-base sm:text-lg leading-none">
-                {member.name}
+              <div className="flex items-end gap-5 sm:gap-6">
+                <div className="min-w-0">
+                  <p className="font-mono text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1.5">
+                    Cardholder
+                  </p>
+                  <p className="truncate font-headline uppercase tracking-wide text-foreground text-base sm:text-lg leading-none">
+                    {member.name}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="font-mono text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1.5">
+                    Valid Thru
+                  </p>
+                  <p className="font-mono text-xs sm:text-sm text-foreground leading-none">
+                    12/26
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
+                Scan the QR at the launch to verify
               </p>
             </div>
-            <div className="shrink-0 text-right">
-              <p className="font-mono text-[6px] tracking-[0.34em] uppercase text-muted-foreground mb-1.5">
-                Valid Thru
-              </p>
-              <p className="font-mono text-xs sm:text-sm text-foreground leading-none">
-                12/26
-              </p>
+            <div className="shrink-0 flex flex-col items-end gap-1">
+              <span className="font-mono text-[6px] tracking-[0.34em] uppercase text-muted-foreground">
+                Verify
+              </span>
+              <div className="bg-white p-1.5">
+                <QRCodeSVG
+                  value={qrValue}
+                  size={96}
+                  level="M"
+                  className="h-[80px] w-[80px] sm:h-[100px] sm:w-[100px]"
+                />
+              </div>
             </div>
           </div>
 
@@ -154,14 +174,9 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
             <p className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
               Member {String(member.membershipNumber).padStart(3, "0")} · {member.membershipTier === "first100" ? "First 50" : "Next 50"}
             </p>
-            <div className="flex items-center gap-1.5">
-              <span className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
-                Verify
-              </span>
-              <div className="bg-white p-0.5">
-                <QRCodeSVG value={qrValue} size={34} level="M" className="h-[34px] w-[34px]" />
-              </div>
-            </div>
+            <p className="font-mono text-[6px] tracking-[0.3em] uppercase text-muted-foreground">
+              Early Access 2026
+            </p>
           </div>
         </div>
       </div>

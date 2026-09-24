@@ -39,7 +39,7 @@ export function MembershipExperience() {
             </div>
             <div className="mt-10 flex items-center gap-2 font-mono text-[9px] tracking-[0.32em] uppercase text-muted-foreground">
               <span className="h-1.5 w-1.5 bg-silver" />
-              Member #{MOCK_MEMBER.membershipNumber} · 10% Off
+              Member #{MOCK_MEMBER.membershipNumber} · {MOCK_MEMBER.discountPercentage}% Off
             </div>
           </div>
 

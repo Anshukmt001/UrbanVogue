@@ -9,6 +9,8 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
+import { normalizeMobile } from "@/lib/validations/member";
 
 export default function JoinPage() {
   const router = useRouter();
@@ -20,9 +22,23 @@ export default function JoinPage() {
   const [agree, setAgree] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [alreadyRegistered, setAlreadyRegistered] = useState<number | null>(null);
 
   function update(field: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function updateMobile(raw: string) {
+    let digits = raw.replace(/\D/g, "");
+    if (digits.startsWith("0")) {
+      digits = digits.slice(1);
+    }
+    if (digits.length === 12 && digits.startsWith("91")) {
+      digits = digits.slice(2);
+    } else if (digits.length === 11 && digits.startsWith("91")) {
+      digits = digits.slice(2);
+    }
+    update("mobile", digits.slice(0, 10));
   }
 
   async function onSubmit(e: React.FormEvent) {
@@ -30,22 +46,32 @@ export default function JoinPage() {
     setSubmitting(true);
     setError(null);
     try {
+      const mobileNumber = normalizeMobile(form.mobile);
       const res = await fetch("/api/members/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.fullName.trim(),
-          mobile: form.mobile.trim(),
+          mobile: mobileNumber,
           email: form.email.trim(),
         }),
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
+        if (json.error === "This mobile number is already registered") {
+          setSubmitting(false);
+          setAlreadyRegistered(
+            typeof json.data?.membershipNumber === "number"
+              ? json.data.membershipNumber
+              : 0
+          );
+          return;
+        }
         throw new Error(registerErrorText(json.error));
       }
       const draft = {
         name: form.fullName.trim(),
-        mobile: form.mobile.trim(),
+        mobile: mobileNumber,
         email: form.email.trim(),
         savedAt: new Date().toISOString(),
       };
@@ -67,6 +93,8 @@ export default function JoinPage() {
         return "Registration is currently paused.";
       case "This mobile number is already registered":
         return "This mobile number is already registered.";
+      case "Enter a valid 10-digit Indian mobile number":
+        return "Enter a valid 10-digit mobile number.";
       default:
         return "Something went wrong. Try again.";
     }
@@ -173,14 +201,29 @@ export default function JoinPage() {
                   value={form.fullName}
                   onChange={(e) => update("fullName", e.target.value)}
                 />
-                <Input
-                  label="Mobile Number"
-                  placeholder="+91 98XXX XXXXX"
-                  inputMode="tel"
-                  autoComplete="tel"
-                  value={form.mobile}
-                  onChange={(e) => update("mobile", e.target.value)}
-                />
+                <div className="w-full">
+                  <label
+                    htmlFor="mobile"
+                    className="block font-mono text-[9px] tracking-[0.3em] uppercase text-muted-foreground mb-2"
+                  >
+                    Mobile Number
+                  </label>
+                  <div className="flex items-center border-b border-border focus-within:border-primary transition-colors">
+                    <span className="shrink-0 font-mono text-base text-muted-foreground">
+                      +91
+                    </span>
+                    <input
+                      id="mobile"
+                      placeholder="98XXX XXXXX"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      value={form.mobile}
+                      onChange={(e) => updateMobile(e.target.value)}
+                      className="w-full bg-transparent border-0 px-3 py-3 text-foreground placeholder:text-muted-foreground/40 text-base focus:outline-none focus:ring-0"
+                    />
+                  </div>
+                </div>
+
                 <Input
                   label="Email Address"
                   placeholder="you@example.com"
@@ -238,6 +281,50 @@ export default function JoinPage() {
         </section>
       </main>
       <Footer />
+
+      <Modal
+        open={alreadyRegistered !== null}
+        onClose={() => setAlreadyRegistered(null)}
+        title="Already Claimed"
+        actions={
+          <>
+            <button
+              onClick={() => setAlreadyRegistered(null)}
+              className="border border-border px-5 py-3 text-[10px] font-bold tracking-[0.22em] uppercase text-muted-foreground hover:text-foreground hover:border-silver transition-all cursor-pointer"
+            >
+              Close
+            </button>
+            {alreadyRegistered !== null && alreadyRegistered > 0 && (
+              <Button
+                variant="inverse"
+                size="lg"
+                onClick={() => router.push(`/membership/${alreadyRegistered}`)}
+              >
+                View My Pass
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
+          </>
+        }
+      >
+        <div className="flex flex-col items-center text-center gap-4">
+          <span className="flex h-12 w-12 items-center justify-center border border-primary/40 bg-primary/10">
+            <Check className="h-5 w-5 text-primary" />
+          </span>
+          <p className="font-headline text-2xl uppercase tracking-tight">
+            You&apos;re already in.
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            This mobile number has already claimed an early-access pass.
+            {alreadyRegistered !== null && alreadyRegistered > 0 && (
+              <>
+                {" "}
+                (Member #{String(alreadyRegistered).padStart(3, "0")})
+              </>
+            )}
+          </p>
+        </div>
+      </Modal>
     </>
   );
 }

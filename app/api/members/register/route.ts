@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Member, getOrCreateSettings, getNextMembershipNumber } from "@/models";
-import { registerMemberSchema } from "@/lib/validations/member";
+import { registerMemberSchema, normalizeMobile } from "@/lib/validations/member";
 
 export async function POST(request: NextRequest) {
   try {
@@ -17,6 +17,14 @@ export async function POST(request: NextRequest) {
     }
 
     const { name, mobile, email } = parsed.data;
+
+    const normalizedMobile = normalizeMobile(mobile || "");
+    if (!/^\+91[6-9]\d{9}$/.test(normalizedMobile)) {
+      return NextResponse.json(
+        { success: false, error: "Enter a valid 10-digit Indian mobile number" },
+        { status: 400 }
+      );
+    }
     const normalizedEmail = email && email.length > 0 ? email : undefined;
 
     await connectToDatabase();
@@ -44,10 +52,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingMember = await Member.findOne({ mobile });
+    const existingMember = await Member.findOne({ mobile: normalizedMobile });
     if (existingMember) {
       return NextResponse.json(
-        { success: false, error: "This mobile number is already registered" },
+        {
+          success: false,
+          error: "This mobile number is already registered",
+          data: { membershipNumber: existingMember.membershipNumber },
+        },
         { status: 409 }
       );
     }
@@ -69,7 +81,7 @@ export async function POST(request: NextRequest) {
     const member = await Member.create({
       membershipNumber,
       name,
-      mobile,
+      mobile: normalizedMobile,
       email: normalizedEmail,
       discountPercentage,
       qrToken,
@@ -100,6 +112,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           error: "This mobile number is already registered",
+          data: null,
         },
         { status: 409 }
       );

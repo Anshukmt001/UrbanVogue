@@ -8,9 +8,10 @@ export const registerMemberSchema = z.object({
     .trim(),
   mobile: z
     .string()
-    .min(1, "Mobile number is required")
     .max(20, "Mobile number must be at most 20 characters")
-    .trim(),
+    .trim()
+    .optional()
+    .or(z.literal("")),
   email: z
     .string()
     .email("Invalid email address")
@@ -22,3 +23,16 @@ export const registerMemberSchema = z.object({
 });
 
 export type RegisterMemberInput = z.infer<typeof registerMemberSchema>;
+
+export function normalizeMobile(raw: string): string {
+  let digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("0")) {
+    digits = digits.slice(1);
+  }
+  if (digits.length === 12 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  } else if (digits.length === 11 && digits.startsWith("91")) {
+    digits = digits.slice(2);
+  }
+  return `+91${digits.slice(0, 10)}`;
+}

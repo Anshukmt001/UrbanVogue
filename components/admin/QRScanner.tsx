@@ -206,7 +206,7 @@ export function QRScanner() {
           Allow camera access, then point it at the member QR code.
         </p>
 
-        <div className="relative aspect-[4/3] overflow-hidden bg-background border border-border">
+        <div className="relative aspect-square sm:aspect-[4/3] overflow-hidden bg-background border border-border">
           <div id="qr-reader" className="absolute inset-0" />
           {camera.kind === "denied" && (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-background">
