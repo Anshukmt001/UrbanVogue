@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   Mail,
@@ -46,6 +47,7 @@ type Flash =
 export default function AdminEmailPage() {
   const [status, setStatus] = useState<EmailStatus | null>(null);
   const [loading, setLoading] = useState(true);
+  const [unauthorized, setUnauthorized] = useState(false);
   const [sending, setSending] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [flash, setFlash] = useState<Flash>(null);
@@ -57,8 +59,16 @@ export default function AdminEmailPage() {
   const load = useCallback(async () => {
     try {
       const res = await fetch("/api/admin/email/status", { cache: "no-store" });
+      if (res.status === 401) {
+        setUnauthorized(true);
+        setStatus(null);
+        return;
+      }
       const json = await res.json();
-      if (json?.success) setStatus(json.data);
+      if (json?.success) {
+        setUnauthorized(false);
+        setStatus(json.data);
+      }
     } catch {
       // ignore
     } finally {
@@ -71,8 +81,18 @@ export default function AdminEmailPage() {
     (async () => {
       try {
         const res = await fetch("/api/admin/email/status", { cache: "no-store" });
+        if (res.status === 401) {
+          if (active) {
+            setUnauthorized(true);
+            setLoading(false);
+          }
+          return;
+        }
         const json = await res.json();
-        if (active && json?.success) setStatus(json.data);
+        if (active && json?.success) {
+          setUnauthorized(false);
+          setStatus(json.data);
+        }
       } catch {
         // ignore
       } finally {
@@ -172,14 +192,20 @@ export default function AdminEmailPage() {
     }
   }
 
-  const stats = status
-    ? [
-        { label: "Sent", value: status.sent, tone: "text-primary" },
-        { label: "Pending", value: status.pending, tone: "text-amber-400" },
-        { label: "Failed", value: status.failed, tone: "text-destructive" },
-        { label: "No Email", value: status.noEmail, tone: "text-muted-foreground" },
-      ]
-    : [];
+  const stats = [
+    { label: "Sent", value: status ? status.sent : null, tone: "text-primary" },
+    {
+      label: "Pending",
+      value: status ? status.pending + status.failed : null,
+      tone: "text-amber-400",
+    },
+    { label: "Failed", value: status ? status.failed : null, tone: "text-destructive" },
+    {
+      label: "No Email",
+      value: status ? status.noEmail : null,
+      tone: "text-muted-foreground",
+    },
+  ];
 
   return (
     <motion.div
@@ -201,14 +227,67 @@ export default function AdminEmailPage() {
           variant="primary"
           size="md"
           onClick={() => setConfirmOpen(true)}
-          disabled={!status || status.remaining === 0 || !status.configured}
+          disabled={Boolean(
+            unauthorized ||
+              !status ||
+              status.remaining === 0 ||
+              !status.configured
+          )}
           loading={sending}
           className="clip-notch"
+          title={
+            unauthorized
+              ? "Sign in as admin first"
+              : !status
+                ? "Loading status…"
+                : !status.configured
+                  ? "Set RESEND_API_KEY and RESEND_FROM_EMAIL"
+                  : status.remaining === 0
+                    ? "No pending emails"
+                    : undefined
+          }
         >
           <Send className="h-4 w-4" />
           Send Pending Emails
         </Button>
       </div>
+
+      {!loading && unauthorized && (
+        <div className="border border-destructive/40 bg-destructive/5 p-5 flex flex-wrap items-center gap-3">
+          <AlertTriangle className="h-4 w-4 text-destructive shrink-0" />
+          <div className="flex-1 min-w-52">
+            <p className="text-sm font-medium text-destructive">Admin session required</p>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              You are not signed in, so the pending list and send buttons are locked.
+              Sign in at <code className="font-mono text-[11px] text-foreground">/admin/login</code>,
+              then reload this page.
+            </p>
+          </div>
+          <Link
+            href="/admin/login"
+            className="clip-notch bg-primary text-primary-foreground px-5 py-2.5 text-[10px] font-bold tracking-[0.22em] uppercase hover:bg-[#b7964e] transition-colors"
+          >
+            Sign In
+          </Link>
+        </div>
+      )}
+
+      {!loading && !unauthorized && status && status.pending + status.failed > 0 && (
+        <div className="border border-amber-500/40 bg-amber-500/5 p-5 flex gap-3">
+          <Send className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-amber-300">
+              {status.pending + status.failed} welcome email
+              {status.pending + status.failed === 1 ? "" : "s"} not delivered yet
+            </p>
+            <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              {status.pending} never sent · {status.failed} failed. Press{" "}
+              <span className="text-foreground">Send Pending Emails</span> (25 per click) to
+              deliver them.
+            </p>
+          </div>
+        </div>
+      )}
 
       {!loading && status && !status.configured && (
         <div className="border border-amber-500/40 bg-amber-500/5 p-5 flex gap-3">
@@ -246,7 +325,7 @@ export default function AdminEmailPage() {
         {stats.map((s) => (
           <div key={s.label} className="border border-border bg-card p-5">
             <p className={`font-headline text-4xl leading-none ${s.tone}`}>
-              {loading ? "—" : s.value}
+              {loading || s.value === null ? "—" : s.value}
             </p>
             <p className="mt-3 font-mono text-[8px] tracking-[0.28em] uppercase text-muted-foreground">
               {s.label}
