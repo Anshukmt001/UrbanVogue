@@ -183,12 +183,12 @@ export function MembershipPass({ member = MOCK_MEMBER }: { member?: MockMember }
               <span className="font-mono text-[5px] sm:text-[6px] tracking-[0.34em] uppercase text-muted-foreground">
                 Verify
               </span>
-              <div className="bg-white p-1 sm:p-1.5">
+              <div className="bg-white p-1 sm:p-2">
                 <QRCodeSVG
                   value={qrValue}
-                  size={96}
+                  size={160}
                   level="M"
-                  className="h-12 w-12 sm:h-[100px] sm:w-[100px]"
+                  className="h-[clamp(88px,26vw,160px)] w-[clamp(88px,26vw,160px)]"
                 />
               </div>
             </div>

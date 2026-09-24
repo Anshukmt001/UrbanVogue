@@ -101,7 +101,7 @@ export function QRScanner() {
   ) {
     await scanner.start(
       constraints,
-      { fps: 10, qrbox: { width: 220, height: 220 } },
+      { fps: 10, qrbox: { width: 260, height: 260 } },
       async (decodedText) => {
         const s = scannerRef.current;
         scannerRef.current = null;
@@ -341,6 +341,17 @@ export function QRScanner() {
                     className="absolute left-0 right-0 h-px bg-primary"
                   />
                 )}
+              </div>
+            </div>
+          )}
+          {cameraActive && (
+            <div className="pointer-events-none absolute inset-0 z-[5]">
+              <div className="absolute inset-[12%_10%]">
+                <span className="absolute top-0 left-0 h-10 w-10 border-t-2 border-l-2 border-primary" />
+                <span className="absolute top-0 right-0 h-10 w-10 border-t-2 border-r-2 border-primary" />
+                <span className="absolute bottom-0 left-0 h-10 w-10 border-b-2 border-l-2 border-primary" />
+                <span className="absolute bottom-0 right-0 h-10 w-10 border-b-2 border-r-2 border-primary" />
+                <span className="scan-line" />
               </div>
             </div>
           )}
