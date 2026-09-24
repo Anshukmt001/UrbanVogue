@@ -2,12 +2,12 @@
 
 import { use, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { toPng } from "html-to-image";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, BookmarkCheck, Copy, Check } from "lucide-react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { MembershipPass } from "@/components/MembershipPass";
+import { downloadMembershipPass } from "@/lib/download-pass";
 import { getMockMemberByNumber, type MockMember } from "@/lib/mock-data";
 
 interface PassDraft {
@@ -94,16 +94,7 @@ export default function MembershipPage({
     if (!cardRef.current) return;
     setDownloading(true);
     try {
-      const dataUrl = await toPng(cardRef.current, {
-        width: 800,
-        height: 504,
-        pixelRatio: 3,
-        backgroundColor: "#141414",
-      });
-      const link = document.createElement("a");
-      link.download = `urban-vogue-member-${member.membershipNumber}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadMembershipPass(cardRef.current, member.membershipNumber);
     } catch {
       // ignore
     } finally {

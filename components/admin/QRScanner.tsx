@@ -44,7 +44,7 @@ export function QRScanner() {
   }, []);
 
   function parseNumber(value: string): number | null {
-    const match = value.match(/uv-(\d+)/i) || value.match(/(\d)/);
+    const match = value.match(/uv-(\d+)/i) || value.match(/(\d+)/);
     if (!match) return null;
     const n = parseInt(match[1], 10);
     if (isNaN(n) || n < 1) return null;
@@ -92,55 +92,122 @@ export function QRScanner() {
     await lookup(membershipNumber);
   }
 
+  async function startScanner(
+    scanner: Html5Qrcode,
+    constraints: MediaTrackConstraints
+  ) {
+    await scanner.start(
+      constraints,
+      { fps: 10, qrbox: { width: 220, height: 220 } },
+      async (decodedText) => {
+        const s = scannerRef.current;
+        scannerRef.current = null;
+        if (s) {
+          await s.stop().catch(() => {});
+        }
+        setCamera({ kind: "idle" });
+        await handleScan(decodedText);
+      },
+      () => {}
+    );
+  }
+
+  async function waitForVideoFrame(readerId: string): Promise<boolean> {
+    const video = document.querySelector<HTMLVideoElement>(`#${readerId} video`);
+    if (!video) return false;
+    if (video.videoWidth > 0 && !video.paused) return true;
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (ok: boolean) => {
+        if (done) return;
+        done = true;
+        resolve(ok);
+      };
+      const onPlaying = () => finish(video.videoWidth > 0);
+      video.addEventListener("playing", onPlaying, { once: true });
+      video.addEventListener(
+        "loadeddata",
+        () => finish(video.videoWidth > 0),
+        { once: true }
+      );
+      video.play().catch(() => finish(false));
+      setTimeout(() => finish(video.videoWidth > 0), 2500);
+    });
+  }
+
   async function startCamera() {
     setCamera({ kind: "starting" });
-    let scanner: Html5Qrcode;
-    try {
-      scanner = new Html5Qrcode("qr-reader", false);
-    } catch {
-      setCamera({
-        kind: "denied",
-        message: "Could not initialise the QR reader. Use manual entry below.",
-      });
-      return;
-    }
-    scannerRef.current = scanner;
-    try {
-      await scanner.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 220, height: 220 } },
-        async (decodedText) => {
-          const s = scannerRef.current;
-          scannerRef.current = null;
-          if (s) {
-            await s.stop().catch(() => {});
-          }
-          setCamera({ kind: "idle" });
-          await handleScan(decodedText);
-        },
-        () => {}
-      );
-      setCamera({ kind: "active" });
-    } catch (err) {
+    const readerId = "qr-reader";
+
+    if (scannerRef.current) {
       try {
-        await scanner.clear();
+        await scannerRef.current.stop();
+      } catch {}
+      try {
+        scannerRef.current.clear();
       } catch {}
       scannerRef.current = null;
-      const name = err instanceof Error ? err.name : "";
-      let message = "Could not access the camera. Allow camera access and try again.";
-      if (name === "NotAllowedError") {
-        message = "Camera permission was denied. Enable camera access in your browser settings, then try again.";
-      } else if (name === "NotFoundError" || name === "OverconstrainedError") {
-        message = "No camera was found on this device.";
-      } else if (name === "NotReadableError") {
-        message = "The camera is busy or in use by another app.";
-      } else if (name === "NotSupportedError" || name === "TypeError") {
-        message = "QR scanning is not supported on this browser or device. Use manual entry below.";
-      } else if (name === "SecurityError") {
-        message = "Camera access requires a secure (HTTPS) connection. You may be on http:// — use the deployed HTTPS link or localhost.";
-      }
-      setCamera({ kind: "denied", message });
     }
+
+    const attemptOrder: MediaTrackConstraints[] = [
+      { facingMode: { ideal: "environment" } },
+      { facingMode: "user" },
+      {},
+    ];
+
+    let lastErr: unknown = null;
+
+    for (const constraints of attemptOrder) {
+      let scanner: Html5Qrcode;
+      try {
+        scanner = new Html5Qrcode(readerId, false);
+      } catch {
+        break;
+      }
+      scannerRef.current = scanner;
+      try {
+        await startScanner(scanner, constraints);
+        const hasFrame = await waitForVideoFrame(readerId);
+        if (!hasFrame) {
+          throw Object.assign(new Error("No video frames"), {
+            name: "NoFrameError",
+          });
+        }
+        setCamera({ kind: "active" });
+        return;
+      } catch (err) {
+        lastErr = err;
+        try {
+          await scanner.stop();
+        } catch {}
+        try {
+          scanner.clear();
+        } catch {}
+        scannerRef.current = null;
+      }
+    }
+
+    const err = lastErr;
+    const name = err instanceof Error ? err.name : "";
+    let message = "Could not access the camera. Allow camera access and try again.";
+    if (name === "NotAllowedError") {
+      message =
+        "Camera permission was denied. Enable camera access in your browser settings, then try again.";
+    } else if (name === "NotFoundError" || name === "OverconstrainedError") {
+      message = "No usable camera was found on this device.";
+    } else if (name === "NotReadableError") {
+      message = "The camera is busy or in use by another app.";
+    } else if (name === "NotSupportedError" || name === "TypeError") {
+      message =
+        "QR scanning is not supported on this browser or device. Use manual entry below.";
+    } else if (name === "SecurityError") {
+      message =
+        "Camera access requires a secure (HTTPS) connection. You may be on http:// — use the deployed HTTPS link or localhost.";
+    } else if (name === "NoFrameError") {
+      message =
+        "The camera opened but produced no picture. Close other apps using the camera, check your camera privacy settings, then try again.";
+    }
+    setCamera({ kind: "denied", message });
   }
 
   async function stopCamera() {

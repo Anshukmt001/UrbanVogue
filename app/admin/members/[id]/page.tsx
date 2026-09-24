@@ -4,11 +4,11 @@ import { use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowLeft, Download, ExternalLink, Ban, CheckCircle2 } from "lucide-react";
-import { toPng } from "html-to-image";
 import { Badge } from "@/components/ui/Badge";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { MembershipPass } from "@/components/MembershipPass";
+import { downloadMembershipPass } from "@/lib/download-pass";
 import { getMockMemberByNumber, type MockMember } from "@/lib/mock-data";
 
 export default function AdminMemberDetailPage({
@@ -60,16 +60,7 @@ export default function AdminMemberDetailPage({
   async function downloadPass() {
     if (!cardRef.current) return;
     try {
-      const dataUrl = await toPng(cardRef.current, {
-        width: 800,
-        height: 504,
-        pixelRatio: 3,
-        backgroundColor: "#141414",
-      });
-      const link = document.createElement("a");
-      link.download = `urban-vogue-member-${member.membershipNumber}.png`;
-      link.href = dataUrl;
-      link.click();
+      await downloadMembershipPass(cardRef.current, member.membershipNumber);
     } catch {
       // ignore
     }

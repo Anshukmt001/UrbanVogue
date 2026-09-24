@@ -175,14 +175,26 @@ body {
 
 /* QR scanner camera feed fills its frame and stays centered */
 #qr-reader {
-  position: relative;
-}
-#qr-reader video {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
+  max-width: none !important;
+  overflow: hidden;
+  background: #000;
+}
+#qr-reader video {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover;
+  background: #000;
+}
+#qr-reader video[style] {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
