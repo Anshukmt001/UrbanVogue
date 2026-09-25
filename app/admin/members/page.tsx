@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Search, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { MemberTable } from "@/components/admin/MemberTable";
+import { tierFromDiscount } from "@/lib/tier";
 import { MOCK_CAMPAIGN, type MockMember } from "@/lib/mock-data";
 
 const BASE_FILTERS = [
@@ -60,7 +61,10 @@ export default function AdminMembersPage() {
       mobile: String(m.mobile ?? ""),
       email: m.email ? String(m.email) : undefined,
       discountPercentage: Number(m.discountPercentage ?? 0),
-      membershipTier: Number(m.membershipNumber) <= 50 ? "first100" : "next50",
+      membershipTier: tierFromDiscount(
+        Number(m.discountPercentage ?? 0),
+        tierOnePct
+      ),
       status: (m.status === "revoked" ? "revoked" : "active") as
         | "active"
         | "revoked",
@@ -172,7 +176,13 @@ export default function AdminMembersPage() {
         </div>
       </div>
 
-      <MemberTable members={rows} emptyLabel="No members found" />
+      <MemberTable
+        members={rows.map((m) => ({
+          ...m,
+          membershipTier: tierFromDiscount(m.discountPercentage, tierOnePct),
+        }))}
+        emptyLabel="No members found"
+      />
 
       {/* Pagination */}
       {totalPages > 1 && (

@@ -76,24 +76,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const membershipNumber = await getNextMembershipNumber();
-
-    if (membershipNumber > settings.earlyAccessLimit) {
-      return NextResponse.json(
-        { success: false, error: "EARLY_ACCESS_SOLD_OUT" },
-        { status: 410 }
-      );
-    }
+    const earlyAccessLimit =
+      typeof settings.earlyAccessLimit === "number"
+        ? settings.earlyAccessLimit
+        : 150;
+    const tenPercentLimit =
+      typeof settings.tenPercentLimit === "number"
+        ? settings.tenPercentLimit
+        : 100;
 
     const tierOnePercent =
       typeof settings.tierOnePercent === "number" ? settings.tierOnePercent : 10;
     const tierTwoPercent =
       typeof settings.tierTwoPercent === "number" ? settings.tierTwoPercent : 5;
 
+    const [totalMembers, tierOneMembers] = await Promise.all([
+      Member.countDocuments({}),
+      Member.countDocuments({ discountPercentage: tierOnePercent }),
+    ]);
+
+    if (totalMembers + 1 > earlyAccessLimit) {
+      return NextResponse.json(
+        { success: false, error: "EARLY_ACCESS_SOLD_OUT" },
+        { status: 410 }
+      );
+    }
+
     const discountPercentage =
-      membershipNumber <= settings.tenPercentLimit
-        ? tierOnePercent
-        : tierTwoPercent;
+      tierOneMembers < tenPercentLimit ? tierOnePercent : tierTwoPercent;
+
+    const membershipNumber = await getNextMembershipNumber();
 
     const qrToken = crypto.randomBytes(32).toString("hex");
 

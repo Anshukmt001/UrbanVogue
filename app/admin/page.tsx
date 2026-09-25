@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { StatCard } from "@/components/admin/StatCard";
 import { MemberTable } from "@/components/admin/MemberTable";
+import { tierFromDiscount } from "@/lib/tier";
 import {
   MOCK_CAMPAIGN,
   MOCK_MEMBERS,
@@ -38,14 +39,19 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     let active = true;
 
-    const toMockMember = (m: Record<string, unknown>): MockMember => ({
+    const toMockMember = (
+      m: Record<string, unknown>,
+      tierOnePct: number
+    ): MockMember => ({
       membershipNumber: Number(m.membershipNumber),
       name: String(m.name ?? ""),
       mobile: String(m.mobile ?? ""),
       email: m.email ? String(m.email) : undefined,
       discountPercentage: Number(m.discountPercentage ?? 0),
-      membershipTier:
-        Number(m.membershipNumber) <= 50 ? "first100" : "next50",
+      membershipTier: tierFromDiscount(
+        Number(m.discountPercentage ?? 0),
+        tierOnePct
+      ),
       status: (m.status === "revoked" ? "revoked" : "active") as
         | "active"
         | "revoked",
@@ -63,7 +69,12 @@ export default function AdminDashboardPage() {
         if (!active) return;
         if (statsJson?.success) setStats(statsJson.data as StatsData);
         if (recentJson?.success && Array.isArray(recentJson.data)) {
-          setRecent(recentJson.data.map(toMockMember).slice(0, 6));
+          const tierOnePct = Number(statsJson?.data?.tierOnePercent) || 10;
+          setRecent(
+            recentJson.data
+              .map((m: Record<string, unknown>) => toMockMember(m, tierOnePct))
+              .slice(0, 6)
+          );
         }
         if (chartJson?.success && Array.isArray(chartJson.data)) {
           setChart(chartJson.data as ChartPoint[]);

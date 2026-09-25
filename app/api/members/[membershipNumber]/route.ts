@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Member } from "@/models";
+import { Member, getOrCreateSettings } from "@/models";
+import { tierFromDiscount } from "@/lib/tier";
 
 export async function GET(
   _request: NextRequest,
@@ -10,7 +11,7 @@ export async function GET(
     const { membershipNumber } = await params;
     const num = parseInt(membershipNumber, 10);
 
-    if (isNaN(num) || num < 1 || num > 100) {
+    if (isNaN(num) || num < 1 || num > 100000) {
       return NextResponse.json(
         { success: false, error: "Invalid membership number" },
         { status: 400 }
@@ -44,12 +45,18 @@ export async function GET(
       );
     }
 
+    const settings = await getOrCreateSettings();
+
     return NextResponse.json({
       success: true,
       data: {
         membershipNumber: member.membershipNumber,
         name: member.name,
         discountPercentage: member.discountPercentage,
+        membershipTier: tierFromDiscount(
+          member.discountPercentage,
+          settings.tierOnePercent
+        ),
         qrToken: member.qrToken,
       },
     });

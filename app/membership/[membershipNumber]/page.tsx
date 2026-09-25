@@ -60,7 +60,7 @@ export default function MembershipPage({
           mobile: "",
           email: "",
           discountPercentage: d.discountPercentage,
-          membershipTier: d.membershipNumber <= 50 ? "first100" : "next50",
+          membershipTier: d.membershipTier === "next50" ? "next50" : "first100",
           status: "active",
           discountRedeemed: false,
           redeemedAt: null,

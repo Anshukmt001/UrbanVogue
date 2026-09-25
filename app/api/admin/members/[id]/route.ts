@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectToDatabase } from "@/lib/mongodb";
-import { Member } from "@/models";
+import { Member, getOrCreateSettings } from "@/models";
+import { tierFromDiscount } from "@/lib/tier";
 
 export async function GET(
   _request: NextRequest,
@@ -34,7 +35,18 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ success: true, data: member });
+    const settings = await getOrCreateSettings();
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...member,
+        membershipTier: tierFromDiscount(
+          member.discountPercentage,
+          settings.tierOnePercent
+        ),
+      },
+    });
   } catch {
     return NextResponse.json(
       { success: false, error: "Internal server error" },
